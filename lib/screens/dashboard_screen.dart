@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import '../models/transaction_item.dart';
 import '../services/api_sync_service.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final void Function(int tabIndex)? onNavigateTab;
+
+  const DashboardScreen({super.key, this.onNavigateTab});
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -83,13 +84,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    'Pilih channel pembayaran:',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      color: AppTheme.darkTextSecondary,
-                    ),
+                    'Pilih kanal bank / e-wallet untuk disimulasikan:',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white60),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 10),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -105,7 +103,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           color: isSelected ? AppTheme.primaryEmerald : Colors.white70,
                         ),
                         side: BorderSide(
-                          color: isSelected ? AppTheme.primaryEmerald : AppTheme.darkCardBorder,
+                          color: isSelected ? AppTheme.primaryEmerald : AppTheme.darkBorder,
                         ),
                         backgroundColor: AppTheme.darkBg,
                         onSelected: (val) {
@@ -145,11 +143,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       hintStyle: GoogleFonts.plusJakartaSans(color: Colors.white38),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: AppTheme.darkCardBorder),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(color: AppTheme.darkCardBorder),
+                        borderSide: BorderSide.none,
                       ),
                     ),
                   ),
@@ -215,36 +209,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
         return Scaffold(
           backgroundColor: AppTheme.darkBg,
           appBar: AppBar(
-            backgroundColor: AppTheme.darkBg,
+            backgroundColor: AppTheme.darkCard,
             elevation: 0,
             title: Row(
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [AppTheme.primaryEmerald, AppTheme.primaryTeal],
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'X',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 18,
-                      ),
-                    ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.asset(
+                    'assets/images/icon.png',
+                    width: 34,
+                    height: 34,
+                    fit: BoxFit.cover,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ReconX Mobile',
+                      'ReconX Companion',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
@@ -252,10 +235,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     Text(
-                      user?.email ?? 'kevin.naserwan@reconx.io',
+                      user?.email.isNotEmpty == true ? user!.email : 'Online Sync Engine',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
-                        color: AppTheme.darkTextSecondary,
+                        color: Colors.white54,
                       ),
                     ),
                   ],
@@ -266,9 +249,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
               IconButton(
                 icon: const Icon(Icons.settings_outlined, color: Colors.white70),
                 onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                  );
+                  if (widget.onNavigateTab != null) {
+                    widget.onNavigateTab!(4); // Navigate to Settings Tab
+                  } else {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                    );
+                  }
                 },
               ),
             ],
@@ -322,10 +309,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             ),
                             Text(
-                              'Memonitor mutasi bank & e-wallet real-time',
+                              'Memonitor mutasi bank, e-wallet, & nota fisik',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
-                                color: AppTheme.darkTextSecondary,
+                                color: Colors.white54,
                               ),
                             ),
                           ],
@@ -373,13 +360,94 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                 const SizedBox(height: 20),
 
+                // Quick Action Cards
+                Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => widget.onNavigateTab?.call(2), // Scan Nota Tab
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppTheme.darkCard,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppTheme.primaryEmerald.withOpacity(0.4)),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryEmerald.withOpacity(0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.camera_alt_rounded, size: 20, color: AppTheme.primaryEmerald),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Scan Nota Fisik',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: _showTestNotificationSheet,
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: AppTheme.darkCard,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: AppTheme.darkBorder),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryCyan.withOpacity(0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.flash_on_rounded, size: 20, color: AppTheme.primaryCyan),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  'Test Notifikasi',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
                 // Monitored Channels
                 Text(
-                  'APLIKASI TERHUBUNG (7 KANAL)',
+                  'APLIKASI TERHUBUNG (11 KANAL)',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: AppTheme.darkTextSecondary,
+                    color: Colors.white54,
                     letterSpacing: 0.8,
                   ),
                 ),
@@ -398,7 +466,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         decoration: BoxDecoration(
                           color: AppTheme.darkCard,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.darkCardBorder),
+                          border: Border.all(color: AppTheme.darkBorder),
                         ),
                         child: Row(
                           children: [
@@ -433,121 +501,144 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'LIVE NOTIFICATION FEED',
+                      'MUTASI TERBARU',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        color: AppTheme.darkTextSecondary,
+                        color: Colors.white54,
                         letterSpacing: 0.8,
                       ),
                     ),
-                    Text(
-                      '${syncService.history.length} records',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        color: AppTheme.primaryEmerald,
-                        fontWeight: FontWeight.bold,
+                    GestureDetector(
+                      onTap: () => widget.onNavigateTab?.call(1), // Mutasi Tab
+                      child: Text(
+                        'Lihat Semua (${syncService.history.length})',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          color: AppTheme.primaryEmerald,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
 
-                // Transactions Feed List
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: syncService.history.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (ctx, idx) {
-                    final item = syncService.history[idx];
-                    return Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppTheme.darkCard,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppTheme.darkCardBorder),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primaryEmerald.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(6),
+                // Transactions Feed List or Clean Empty State
+                if (syncService.history.isEmpty)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: AppTheme.darkCard,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: AppTheme.darkBorder),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(Icons.inbox_rounded, size: 38, color: Colors.white30),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Belum Ada Mutasi Hari Ini',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Notifikasi dari bank atau scan struk fisik akan otomatis masuk dan terekonsiliasi.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            color: Colors.white54,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: syncService.history.take(5).length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    itemBuilder: (ctx, idx) {
+                      final item = syncService.history[idx];
+                      final isReceipt = item.channel.contains('RECEIPT');
+
+                      return Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.darkCard,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isReceipt
+                                ? AppTheme.primaryEmerald.withOpacity(0.3)
+                                : AppTheme.darkBorder,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: (isReceipt ? AppTheme.primaryTeal : AppTheme.primaryEmerald).withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    item.appName,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: isReceipt ? AppTheme.primaryTeal : AppTheme.primaryEmerald,
+                                    ),
+                                  ),
                                 ),
-                                child: Text(
-                                  item.appName,
+                                Text(
+                                  DateFormat('HH:mm').format(item.timestamp),
                                   style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 10,
+                                    fontSize: 11,
+                                    color: Colors.white54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    item.merchant,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  currencyFormat.format(item.amount),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w800,
                                     color: AppTheme.primaryEmerald,
                                   ),
                                 ),
-                              ),
-                              Text(
-                                DateFormat('HH:mm').format(item.timestamp),
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 11,
-                                  color: AppTheme.darkTextSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  item.merchant,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                currencyFormat.format(item.amount),
-                                style: GoogleFonts.jetBrainsMono(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppTheme.primaryEmerald,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            item.content,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11,
-                              color: AppTheme.darkTextSecondary,
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
               ],
-            ),
-          ),
-          floatingActionButton: FloatingActionButton.extended(
-            onPressed: _showTestNotificationSheet,
-            backgroundColor: AppTheme.primaryEmerald,
-            foregroundColor: Colors.white,
-            icon: const Icon(Icons.flash_on_rounded),
-            label: Text(
-              'Test Notifikasi',
-              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800),
             ),
           ),
         );
@@ -561,7 +652,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       decoration: BoxDecoration(
         color: AppTheme.darkCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.darkCardBorder),
+        border: Border.all(color: AppTheme.darkBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -583,7 +674,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             label,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 10,
-              color: AppTheme.darkTextSecondary,
+              color: Colors.white54,
             ),
           ),
         ],

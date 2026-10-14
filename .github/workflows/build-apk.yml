@@ -39,7 +39,7 @@ jobs:
           find android -name "build.gradle*" -exec sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/g' {} + || true
 
-      - name: Configure Notification Interceptor & Android Permissions
+      - name: Configure Notification Interceptor, Camera & Biometric Permissions
         run: |
           mkdir -p android/app/src/main/res
           cp -r custom_android/res/* android/app/src/main/res/
@@ -47,30 +47,7 @@ jobs:
           mkdir -p android/app/src/main/kotlin/com/reconx/agent/reconx_mobile
           cp custom_android/MainActivity.kt android/app/src/main/kotlin/com/reconx/agent/reconx_mobile/MainActivity.kt
           cp custom_android/ReconXNotificationListener.kt android/app/src/main/kotlin/com/reconx/agent/reconx_mobile/ReconXNotificationListener.kt
-          python3 -c "
-          with open('android/app/src/main/AndroidManifest.xml', 'r') as f:
-              c = f.read()
-          perms = '''
-              <uses-permission android:name=\"android.permission.INTERNET\"/>
-              <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>
-              <uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\"/>
-          '''
-          srv = '''
-                  <service
-                      android:name=\"com.reconx.agent.reconx_mobile.ReconXNotificationListener\"
-                      android:label=\"ReconX Financial Notification Interceptor\"
-                      android:permission=\"android.permission.BIND_NOTIFICATION_LISTENER_SERVICE\"
-                      android:exported=\"true\">
-                      <intent-filter>
-                          <action android:name=\"android.service.notification.NotificationListenerService\" />
-                      </intent-filter>
-                  </service>
-          '''
-          c = c.replace('<application', perms + '    <application', 1)
-          c = c.replace('</application>', srv + '    </application>', 1)
-          with open('android/app/src/main/AndroidManifest.xml', 'w') as f:
-              f.write(c)
-          "
+          cp custom_android/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
 
       - name: Install Dependencies
         run: flutter pub get
@@ -106,7 +83,7 @@ jobs:
           fi
           echo "Found APK: $APK_FILE"
           mkdir -p dist
-          cp "$APK_FILE" dist/ReconX-Companion-v1.0.0.apk
+          cp "$APK_FILE" dist/ReconX-Companion-v1.1.0.apk
           ls -lh dist/
 
       - name: Upload Build Log Artifact
@@ -120,29 +97,33 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ReconX-Companion-v1.0.0-APK
-          path: dist/ReconX-Companion-v1.0.0.apk
+          name: ReconX-Companion-v1.1.0-APK
+          path: dist/ReconX-Companion-v1.1.0.apk
           retention-days: 30
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.0.0
-          name: "ReconX Mobile Companion v1.0.0"
+          tag_name: v1.1.0
+          name: "ReconX Mobile Companion v1.1.0"
           draft: false
           prerelease: false
           body: |
-            ### ReconX Mobile Companion v1.0.0 Release
+            ### ReconX Mobile Companion v1.1.0 Release
             
             Official Android Companion APK for **ReconX Financial Clearing & Family Reconciliation Engine**.
             
-            - 📡 **Real-Time Notification Interceptor:** Reads notifications from BCA, Superbank, SeaBank, Mandiri Livin, BRImo, BNI, ShopeePay, GoPay, OVO, and DANA.
-            - 🔐 **Anti-Double Counting Engine:** Correlates multi-channel notifications and eliminates internal household transfers.
-            - 👨‍👩‍👧‍👦 **Multi-Tenant Family Sync:** Links directly to the dashboard (`https://reconx.ramuni.id`) via invite PIN `FAM-KVN-8821`.
+            - 🚀 **Bottom Navigation:** 5 core modules: Beranda, Mutasi, Scan Nota Fisik, Keluarga, & Pengaturan.
+            - 📸 **Receipt & Payment Scanner:** Auto capture via kamera & foto nota pembayaran fisik, automatic OCR expense extraction.
+            - 🔐 **Biometric Security:** Buka aplikasi dengan Sidik Jari (Fingerprint / Face Unlock).
+            - 🎨 **Unified App Icon:** Launcher icon dan internal branding 100% seragam dengan versi Web ReconX.
+            - 📡 **Notification Interceptor:** BCA, Superbank, SeaBank, Mandiri Livin, BRImo, BNI, ShopeePay, GoPay, OVO, DANA.
+            - 👨‍👩‍👧‍👦 **Multi-Tenant SaaS Cluster:** Hubungkan akun ke dashboard web (PIN unik `FAM-XXX-XXXX`).
+            - 🚪 **Logout & Factory Reset:** Keluar akun dengan aman dan reset data lokal.
             
             #### 📥 Download & Install:
-            Download **`ReconX-Companion-v1.0.0.apk`** below and install it directly on your Android phone.
-          files: dist/ReconX-Companion-v1.0.0.apk
+            Download **`ReconX-Companion-v1.1.0.apk`** below and install it directly on your Android phone.
+          files: dist/ReconX-Companion-v1.1.0.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

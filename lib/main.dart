@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
-import 'screens/dashboard_screen.dart';
+import 'screens/biometric_lock_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/main_navigation_screen.dart';
+import 'services/api_sync_service.dart';
 import 'services/auth_service.dart';
+import 'services/biometric_service.dart';
 import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await AuthService().init();
+  await BiometricService().init();
+  await ApiSyncService().init();
   runApp(const ReconXMobileApp());
 }
 
@@ -19,6 +24,16 @@ class ReconXMobileApp extends StatelessWidget {
       listenable: AuthService(),
       builder: (context, _) {
         final authService = AuthService();
+        final bioService = BiometricService();
+
+        Widget initialScreen;
+        if (!authService.isAuthenticated) {
+          initialScreen = const LoginScreen();
+        } else if (bioService.isBiometricEnabled) {
+          initialScreen = const BiometricLockScreen();
+        } else {
+          initialScreen = const MainNavigationScreen();
+        }
 
         return MaterialApp(
           title: 'ReconX Companion',
@@ -26,9 +41,7 @@ class ReconXMobileApp extends StatelessWidget {
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: ThemeMode.dark, // Default clean dark SaaS aesthetic
-          home: authService.isAuthenticated
-              ? const DashboardScreen()
-              : const LoginScreen(),
+          home: initialScreen,
         );
       },
     );

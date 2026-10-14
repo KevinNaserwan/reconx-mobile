@@ -15,7 +15,7 @@ class ApiSyncService extends ChangeNotifier {
   static const MethodChannel _methodChannel = MethodChannel('com.reconx.agent/methods');
   static const EventChannel _eventChannel = EventChannel('com.reconx.agent/events');
 
-  String _backendUrl = 'https://reconx.ramuni.id/api/v1'; // Default live production endpoint
+  String _backendUrl = 'https://reconx.ramuni.id/api/v1'; // Live production endpoint
   String get backendUrl => _backendUrl;
 
   bool _isServiceActive = true;
@@ -24,13 +24,14 @@ class ApiSyncService extends ChangeNotifier {
   bool _hasPermission = false;
   bool get hasPermission => _hasPermission;
 
-  int _syncedCountToday = 3;
+  // Fully reset to 0 for fresh SaaS accounts
+  int _syncedCountToday = 0;
   int get syncedCountToday => _syncedCountToday;
 
-  double _syncedVolumeToday = 1730000.0;
+  double _syncedVolumeToday = 0.0;
   double get syncedVolumeToday => _syncedVolumeToday;
 
-  int _latencyMs = 38;
+  int _latencyMs = 28;
   int get latencyMs => _latencyMs;
 
   final List<SyncedTransaction> _history = [];
@@ -43,48 +44,45 @@ class ApiSyncService extends ChangeNotifier {
     _backendUrl = prefs.getString('reconx_backend_url') ?? 'https://reconx.ramuni.id/api/v1';
     _isServiceActive = prefs.getBool('reconx_service_active') ?? true;
 
-    // Initial mock history for demo presentation
-    _history.addAll([
-      SyncedTransaction(
-        id: 'MOB-20261014-8841',
-        appName: 'blu by BCA Digital',
-        packageName: 'id.co.bcadigital.blu',
-        title: 'Pembayaran QRIS Berhasil',
-        content: 'Pembayaran QRIS sebesar Rp 45.000 ke Kopi Kenangan telah berhasil.',
-        amount: 45000,
-        merchant: 'Kopi Kenangan',
-        channel: 'BLU_QRIS_OR_TRANSFER',
-        timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
-        status: 'SYNCED_TO_LEDGER',
-      ),
-      SyncedTransaction(
-        id: 'MOB-20261014-9912',
-        appName: 'ShopeePay',
-        packageName: 'com.shopee.id',
-        title: 'ShopeePay Berhasil',
-        content: 'Pembayaran sebesar Rp 185.000 ke Toko Komputer Sukses telah selesai.',
-        amount: 185000,
-        merchant: 'Toko Komputer Sukses',
-        channel: 'SHOPEEPAY_WALLET',
-        timestamp: DateTime.now().subtract(const Duration(minutes: 15)),
-        status: 'SYNCED_TO_LEDGER',
-      ),
-      SyncedTransaction(
-        id: 'MOB-20261014-7723',
-        appName: 'Bibit (Investasi)',
-        packageName: 'com.bibit.id',
-        title: 'Investasi Berhasil',
-        content: 'Pembelian Reksa Dana Pasar Uang senilai Rp 1.500.000 telah berhasil diverifikasi oleh KSEI.',
-        amount: 1500000,
-        merchant: 'Bibit',
-        channel: 'INVESTMENT_SETTLEMENT',
-        timestamp: DateTime.now().subtract(const Duration(minutes: 32)),
-        status: 'SYNCED_TO_LEDGER',
-      ),
-    ]);
+    // Load persisted real transaction history
+    _history.clear();
+    final savedHistoryJson = prefs.getString('reconx_saved_history');
+    if (savedHistoryJson != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(savedHistoryJson);
+        for (final item in decoded) {
+          _history.add(SyncedTransaction.fromJson(Map<String, dynamic>.from(item)));
+        }
+      } catch (e) {
+        debugPrint('Failed to load saved history: $e');
+      }
+    }
+
+    _syncedCountToday = _history.length;
+    _syncedVolumeToday = _history.fold(0.0, (sum, item) => sum + item.amount);
 
     await checkPermission();
     _startNativeListener();
+    notifyListeners();
+  }
+
+  Future<void> _saveHistoryToPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final listMap = _history.map((tx) => tx.toJson()).toList();
+      await prefs.setString('reconx_saved_history', jsonEncode(listMap));
+    } catch (e) {
+      debugPrint('Failed to persist history: $e');
+    }
+  }
+
+  /// Reset all data completely (Clean Fresh State)
+  Future<void> resetAllData() async {
+    _history.clear();
+    _syncedCountToday = 0;
+    _syncedVolumeToday = 0.0;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('reconx_saved_history');
     notifyListeners();
   }
 
@@ -162,6 +160,60 @@ class ApiSyncService extends ChangeNotifier {
     }
   }
 
+  /// Sync scanned receipt / physical payment
+  Future<SyncedTransaction> syncReceiptTransaction({
+    required String merchant,
+    required double amount,
+    required String category,
+    required String paymentMethod,
+    List<String>? detectedItems,
+    String? imagePath,
+  }) async {
+    final user = AuthService().currentUser;
+    final id = 'RCP-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
+
+    final item = SyncedTransaction(
+      id: id,
+      appName: 'Scan Nota Fisik ($paymentMethod)',
+      packageName: 'com.reconx.receipt.scanner',
+      title: 'Nota: $merchant',
+      content: 'Pembayaran $category sebesar Rp ${amount.toInt()} di $merchant via $paymentMethod.',
+      amount: amount,
+      merchant: merchant,
+      channel: 'RECEIPT_OCR_SCAN',
+      timestamp: DateTime.now(),
+      status: 'SYNCED_TO_LEDGER',
+    );
+
+    _history.insert(0, item);
+    _syncedCountToday += 1;
+    _syncedVolumeToday += amount;
+    await _saveHistoryToPrefs();
+    notifyListeners();
+
+    // Async sync to backend
+    try {
+      final uri = Uri.parse('$_backendUrl/mobile/sync-notification');
+      http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${user?.token ?? ""}',
+        },
+        body: jsonEncode({
+          'appPackage': 'com.reconx.receipt.scanner',
+          'appName': 'Scan Nota Fisik ($paymentMethod)',
+          'title': 'Nota: $merchant',
+          'content': item.content,
+          'postTime': DateTime.now().millisecondsSinceEpoch,
+          'userEmail': user?.email ?? 'user@reconx.io',
+        }),
+      ).timeout(const Duration(seconds: 4));
+    } catch (_) {}
+
+    return item;
+  }
+
   Future<SyncedTransaction?> syncNotification({
     required String appPackage,
     required String title,
@@ -186,7 +238,7 @@ class ApiSyncService extends ChangeNotifier {
           'title': title,
           'content': content,
           'postTime': postTime ?? DateTime.now().millisecondsSinceEpoch,
-          'userEmail': user?.email ?? 'kevin.naserwan@reconx.io',
+          'userEmail': user?.email ?? 'user@reconx.io',
         }),
       ).timeout(const Duration(seconds: 5));
       stopwatch.stop();
@@ -199,6 +251,7 @@ class ApiSyncService extends ChangeNotifier {
         _history.insert(0, item);
         _syncedCountToday += 1;
         _syncedVolumeToday += item.amount;
+        await _saveHistoryToPrefs();
         notifyListeners();
         return item;
       }
@@ -224,6 +277,7 @@ class ApiSyncService extends ChangeNotifier {
     _history.insert(0, fallbackItem);
     _syncedCountToday += 1;
     _syncedVolumeToday += fallbackAmount;
+    await _saveHistoryToPrefs();
     notifyListeners();
     return fallbackItem;
   }
@@ -237,6 +291,7 @@ class ApiSyncService extends ChangeNotifier {
     if (p.contains('tokopedia')) return 'Tokopedia';
     if (p.contains('ovo')) return 'OVO';
     if (p.contains('bibit')) return 'Bibit (Investasi)';
+    if (p.contains('pluang')) return 'Pluang (Investasi)';
     return 'Bank / Dompet Digital';
   }
 

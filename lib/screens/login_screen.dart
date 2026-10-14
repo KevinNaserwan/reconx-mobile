@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
-import 'dashboard_screen.dart';
+import 'main_navigation_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,10 +15,11 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   int _activeTab = 0; // 0 = Login, 1 = Register
 
-  final _emailController = TextEditingController(text: 'kevin.naserwan@gmail.com');
-  final _nameController = TextEditingController(text: 'Kevin Naserwan');
-  final _familyNameController = TextEditingController(text: 'Keluarga Kevin & Istri');
-  final _inviteCodeController = TextEditingController(text: 'FAM-KVN-8821');
+  // Fresh, clean controllers with no pre-filled dummy strings
+  final _emailController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _familyNameController = TextEditingController();
+  final _inviteCodeController = TextEditingController();
   bool _isJoiningFamily = false;
 
   @override
@@ -37,7 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (success && mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
       );
     }
   }
@@ -72,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (success && mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+        MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
       );
     }
   }
@@ -89,33 +90,25 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               const SizedBox(height: 10),
 
-              // Brand Icon & Titles
+              // Web-matching Brand Icon
               Container(
-                width: 64,
-                height: 64,
+                width: 72,
+                height: 72,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [
-                      AppTheme.primaryEmerald,
-                      AppTheme.primaryTeal,
-                      AppTheme.primaryCyan,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
                       color: AppTheme.primaryEmerald.withOpacity(0.3),
-                      blurRadius: 18,
+                      blurRadius: 20,
                       offset: const Offset(0, 6),
                     ),
                   ],
                 ),
-                child: Center(
-                  child: CustomPaint(
-                    size: const Size(36, 36),
-                    painter: _LogoNodePainter(),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.asset(
+                    'assets/images/icon.png',
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),
@@ -162,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 'Auto-sync mutasi bank & e-wallet ke ReconX Household Ledger secara real-time.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(
-                  color: AppTheme.darkTextSecondary,
+                  color: Colors.white60,
                   fontSize: 12,
                   height: 1.4,
                 ),
@@ -175,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 decoration: BoxDecoration(
                   color: AppTheme.darkCard,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppTheme.darkCardBorder),
+                  border: Border.all(color: AppTheme.darkBorder),
                 ),
                 child: Row(
                   children: [
@@ -192,7 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: Text(
                               'Masuk (Login)',
                               style: GoogleFonts.plusJakartaSans(
-                                color: _activeTab == 0 ? Colors.white : AppTheme.darkTextSecondary,
+                                color: _activeTab == 0 ? Colors.white : Colors.white60,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                               ),
@@ -214,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: Text(
                               'Daftar Baru (Register)',
                               style: GoogleFonts.plusJakartaSans(
-                                color: _activeTab == 1 ? Colors.white : AppTheme.darkTextSecondary,
+                                color: _activeTab == 1 ? Colors.white : Colors.white60,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                               ),
@@ -264,19 +257,19 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: Divider(color: AppTheme.darkCardBorder)),
+                  const Expanded(child: Divider(color: AppTheme.darkBorder)),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 10),
                     child: Text(
-                      'atau dengan akun',
+                      'atau dengan email',
                       style: GoogleFonts.plusJakartaSans(
-                        color: AppTheme.darkTextSecondary,
+                        color: Colors.white54,
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
-                  Expanded(child: Divider(color: AppTheme.darkCardBorder)),
+                  const Expanded(child: Divider(color: AppTheme.darkBorder)),
                 ],
               ),
               const SizedBox(height: 16),
@@ -287,7 +280,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   label: 'Nama Lengkap',
                   controller: _nameController,
                   icon: Icons.person_outline,
-                  hint: 'Budi Pratama',
+                  hint: 'contoh: Budi Pratama',
                 ),
                 const SizedBox(height: 12),
               ],
@@ -296,7 +289,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 label: 'Email Pengguna',
                 controller: _emailController,
                 icon: Icons.email_outlined,
-                hint: 'user@reconx.io',
+                hint: 'contoh: budi@gmail.com',
                 keyboardType: TextInputType.emailAddress,
               ),
 
@@ -313,7 +306,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         onSelected: (val) => setState(() => _isJoiningFamily = false),
                         selectedColor: AppTheme.primaryEmerald.withOpacity(0.2),
                         labelStyle: GoogleFonts.plusJakartaSans(
-                          color: !_isJoiningFamily ? AppTheme.primaryEmerald : AppTheme.darkTextSecondary,
+                          color: !_isJoiningFamily ? AppTheme.primaryEmerald : Colors.white60,
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                         ),
@@ -327,7 +320,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         onSelected: (val) => setState(() => _isJoiningFamily = true),
                         selectedColor: AppTheme.primaryCyan.withOpacity(0.2),
                         labelStyle: GoogleFonts.plusJakartaSans(
-                          color: _isJoiningFamily ? AppTheme.primaryCyan : AppTheme.darkTextSecondary,
+                          color: _isJoiningFamily ? AppTheme.primaryCyan : Colors.white60,
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
                         ),
@@ -339,17 +332,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 if (!_isJoiningFamily)
                   _buildTextField(
-                    label: 'Nama Cluster Keluarga',
+                    label: 'Nama Cluster Keluarga Baru',
                     controller: _familyNameController,
                     icon: Icons.family_restroom,
-                    hint: 'Keluarga Pratama & Istri',
+                    hint: 'contoh: Keluarga Budi & Sari',
                   )
                 else
                   _buildTextField(
-                    label: 'PIN Undangan Keluarga',
+                    label: 'PIN Undangan Keluarga Pasangan',
                     controller: _inviteCodeController,
                     icon: Icons.vpn_key_outlined,
-                    hint: 'FAM-KVN-8821',
+                    hint: 'contoh: FAM-BUD-4499',
                   ),
               ],
 
@@ -403,7 +396,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(
                     'Multi-Tenant SaaS • TLS 256-bit Encrypted',
                     style: GoogleFonts.plusJakartaSans(
-                      color: AppTheme.darkTextSecondary,
+                      color: Colors.white54,
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
                     ),
@@ -440,7 +433,7 @@ class _LoginScreenState extends State<LoginScreen> {
           decoration: BoxDecoration(
             color: AppTheme.darkCard,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppTheme.darkCardBorder),
+            border: Border.all(color: AppTheme.darkBorder),
           ),
           child: TextField(
             controller: controller,
@@ -453,7 +446,7 @@ class _LoginScreenState extends State<LoginScreen> {
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               border: InputBorder.none,
-              prefixIcon: Icon(icon, size: 18, color: AppTheme.darkTextSecondary),
+              prefixIcon: Icon(icon, size: 18, color: Colors.white54),
               hintText: hint,
               hintStyle: GoogleFonts.plusJakartaSans(
                 color: Colors.white38,
@@ -465,39 +458,4 @@ class _LoginScreenState extends State<LoginScreen> {
       ],
     );
   }
-}
-
-class _LogoNodePainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint1 = Paint()
-      ..color = Colors.white
-      ..strokeWidth = 3.5
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    canvas.drawLine(
-      Offset(size.width * 0.2, size.height * 0.2),
-      Offset(size.width * 0.8, size.height * 0.8),
-      paint1,
-    );
-    canvas.drawLine(
-      Offset(size.width * 0.8, size.height * 0.2),
-      Offset(size.width * 0.2, size.height * 0.8),
-      paint1,
-    );
-
-    final nodePaint = Paint()
-      ..color = const Color(0xFF022C22)
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset(size.width * 0.5, size.height * 0.5), 5.5, nodePaint);
-
-    final centerDotPaint = Paint()
-      ..color = AppTheme.primaryEmerald
-      ..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset(size.width * 0.5, size.height * 0.5), 2.5, centerDotPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

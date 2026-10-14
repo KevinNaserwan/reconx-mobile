@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_sync_service.dart';
 import '../services/auth_service.dart';
+import '../services/biometric_service.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
 
@@ -21,6 +22,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _urlController = TextEditingController(text: ApiSyncService().backendUrl);
+    BiometricService().init();
   }
 
   @override
@@ -42,8 +44,59 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _isTesting = false;
       _testResult = ok
           ? 'Connected! Latency: ${ApiSyncService().latencyMs}ms'
-          : 'Failed to connect. Make sure server is reachable.';
+          : 'Gagal terhubung ke endpoint server.';
     });
+  }
+
+  void _showResetConfirmDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.darkCard,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Reset Seluruh Data Lokal?',
+          style: GoogleFonts.plusJakartaSans(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+          ),
+        ),
+        content: Text(
+          'Tindakan ini akan mengosongkan seluruh riwayat mutasi tersimpan dan hitungan volume harian pada perangkat ini. Apakah Anda yakin?',
+          style: GoogleFonts.plusJakartaSans(color: Colors.white70, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Batal', style: TextStyle(color: Colors.white60)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await ApiSyncService().resetAllData();
+              if (mounted) {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Semua data mutasi lokal berhasil di-reset.')),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerRose),
+            child: const Text('Ya, Reset Data', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleSignOut() async {
+    await AuthService().signOut();
+    if (mounted) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        (route) => false,
+      );
+    }
   }
 
   @override
@@ -54,84 +107,75 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       backgroundColor: AppTheme.darkBg,
       appBar: AppBar(
-        backgroundColor: AppTheme.darkBg,
+        backgroundColor: AppTheme.darkCard,
         elevation: 0,
         title: Text(
-          'Settings & Sync Agent',
+          'Pengaturan & Profil',
           style: GoogleFonts.plusJakartaSans(
-            fontSize: 16,
+            fontSize: 18,
             fontWeight: FontWeight.w800,
             color: Colors.white,
           ),
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // User Profile Card
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
                 color: AppTheme.darkCard,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.darkCardBorder),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppTheme.darkBorder),
               ),
               child: Row(
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0F172A),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppTheme.primaryEmerald),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'KN',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+                  CircleAvatar(
+                    radius: 26,
+                    backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
+                    child: Text(
+                      user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'U',
+                      style: const TextStyle(
+                        color: AppTheme.primaryEmerald,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          user?.name ?? 'Kevin Naserwan',
+                          user?.name ?? 'Pengguna ReconX',
                           style: GoogleFonts.plusJakartaSans(
-                            color: Colors.white,
+                            fontSize: 16,
                             fontWeight: FontWeight.w800,
-                            fontSize: 15,
+                            color: Colors.white,
                           ),
                         ),
+                        const SizedBox(height: 2),
                         Text(
-                          user?.email ?? 'kevin.naserwan@reconx.io',
-                          style: GoogleFonts.plusJakartaSans(
-                            color: AppTheme.darkTextSecondary,
-                            fontSize: 12,
-                          ),
+                          user?.email ?? '',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white60),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryEmerald.withOpacity(0.12),
+                            color: AppTheme.primaryTeal.withOpacity(0.15),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            'Google SSO Active',
+                            user?.familyName ?? 'Keluarga Mandiri',
                             style: GoogleFonts.plusJakartaSans(
-                              color: AppTheme.primaryEmerald,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.primaryTeal,
                             ),
                           ),
                         ),
@@ -144,13 +188,90 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 24),
 
-            // Notification Access Permission
+            // Security & Biometric Section
             Text(
-              'ANDROID NOTIFICATION PERMISSION',
+              'KEAMANAN APLIKASI',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
-                color: AppTheme.darkTextSecondary,
+                color: Colors.white54,
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 10),
+            ListenableBuilder(
+              listenable: BiometricService(),
+              builder: (context, _) {
+                final bio = BiometricService();
+
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.darkCard,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.darkBorder),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryEmerald.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.fingerprint_rounded, size: 24, color: AppTheme.primaryEmerald),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Kunci Sidik Jari / Biometrik',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Minta verifikasi biometrik setiap kali aplikasi dibuka.',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                color: Colors.white60,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: bio.isBiometricEnabled,
+                        activeColor: AppTheme.primaryEmerald,
+                        onChanged: (val) async {
+                          final ok = await bio.setBiometricEnabled(val);
+                          if (!ok && val && mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Sensor sidik jari tidak tersedia atau verifikasi dibatalkan.')),
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 24),
+
+            // Notification Interceptor Permission
+            Text(
+              'STATUS NOTIFICATION INTERCEPTOR',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Colors.white54,
                 letterSpacing: 0.8,
               ),
             ),
@@ -160,58 +281,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(
                 color: AppTheme.darkCard,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.darkCardBorder),
+                border: Border.all(color: AppTheme.darkBorder),
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
                       Icon(
-                        syncService.hasPermission ? Icons.check_circle : Icons.warning_rounded,
-                        color: syncService.hasPermission ? AppTheme.primaryEmerald : Colors.amber,
-                        size: 20,
+                        syncService.hasPermission ? Icons.check_circle_rounded : Icons.warning_rounded,
+                        color: syncService.hasPermission ? AppTheme.primaryEmerald : AppTheme.dangerRose,
+                        size: 22,
                       ),
-                      const SizedBox(width: 10),
-                      Text(
-                        syncService.hasPermission
-                            ? 'Notification Listener: GRANTED'
-                            : 'Notification Listener: ACTION REQUIRED',
-                        style: GoogleFonts.plusJakartaSans(
-                          color: syncService.hasPermission ? AppTheme.primaryEmerald : Colors.amber,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              syncService.hasPermission ? 'Akses Notifikasi Aktif' : 'Izin Notifikasi Belum Aktif',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              'Intersepsi otomatis dari BCA, Mandiri, SeaBank, OVO, ShopeePay.',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white60),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Izin ini diperlukan agar aplikasi dapat membaca notifikasi transaksi dari blu BCA, SeaBank, Superbank, ShopeePay, Tokopedia, OVO & Bibit.',
-                    style: GoogleFonts.plusJakartaSans(
-                      color: AppTheme.darkTextSecondary,
-                      fontSize: 12,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () => syncService.openPermissionSettings(),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppTheme.primaryEmerald,
-                        side: const BorderSide(color: AppTheme.primaryEmerald),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  if (!syncService.hasPermission) ...[
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () => syncService.openPermissionSettings(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.primaryEmerald,
+                          side: const BorderSide(color: AppTheme.primaryEmerald),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
-                      ),
-                      child: Text(
-                        'Buka Pengaturan Izin Android',
-                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+                        child: const Text('Aktifkan Izin di Android'),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
@@ -224,7 +341,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
-                color: AppTheme.darkTextSecondary,
+                color: Colors.white54,
                 letterSpacing: 0.8,
               ),
             ),
@@ -234,26 +351,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
               decoration: BoxDecoration(
                 color: AppTheme.darkCard,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.darkCardBorder),
+                border: Border.all(color: AppTheme.darkBorder),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   TextField(
                     controller: _urlController,
-                    style: GoogleFonts.jetBrainsMono(color: Colors.white, fontSize: 13),
+                    style: const TextStyle(color: Colors.white, fontSize: 13),
                     decoration: InputDecoration(
                       filled: true,
                       fillColor: AppTheme.darkBg,
                       labelText: 'API Base URL',
-                      labelStyle: GoogleFonts.plusJakartaSans(color: Colors.white70),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppTheme.darkCardBorder),
-                      ),
+                      labelStyle: const TextStyle(color: Colors.white70),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                     ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -261,32 +375,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.darkBg,
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: const BorderSide(color: AppTheme.darkCardBorder),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       child: _isTesting
-                          ? const SizedBox(
-                              width: 18,
-                              height: 18,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                            )
-                          : Text(
-                              'Test Connection Ping',
-                              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
-                            ),
+                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                          : const Text('Test Koneksi Server'),
                     ),
                   ),
                   if (_testResult != null) ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     Text(
                       _testResult!,
-                      style: GoogleFonts.plusJakartaSans(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: _testResult!.startsWith('Connected')
-                            ? AppTheme.primaryEmerald
-                            : AppTheme.dangerRose,
+                        color: _testResult!.startsWith('Connected') ? AppTheme.primaryEmerald : AppTheme.dangerRose,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -297,30 +399,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 32),
 
-            // Sign Out Button
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: TextButton.icon(
-                onPressed: () async {
-                  await AuthService().signOut();
-                  if (mounted) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      (route) => false,
-                    );
-                  }
-                },
-                icon: const Icon(Icons.logout_rounded, color: AppTheme.dangerRose),
-                label: Text(
-                  'Sign Out from Google',
-                  style: GoogleFonts.plusJakartaSans(
-                    color: AppTheme.dangerRose,
-                    fontWeight: FontWeight.bold,
-                  ),
+            // Factory Reset Local Data Button
+            OutlinedButton.icon(
+              onPressed: _showResetConfirmDialog,
+              icon: const Icon(Icons.delete_sweep_rounded, color: AppTheme.dangerRose),
+              label: Text(
+                'Reset Seluruh Data Mutasi Lokal',
+                style: GoogleFonts.plusJakartaSans(
+                  color: AppTheme.dangerRose,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppTheme.dangerRose),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
             ),
+
+            const SizedBox(height: 14),
+
+            // Sign Out Button
+            ElevatedButton.icon(
+              onPressed: _handleSignOut,
+              icon: const Icon(Icons.logout_rounded, color: Colors.white),
+              label: Text(
+                'Keluar dari Akun (Logout)',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.darkCard,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+            const SizedBox(height: 20),
           ],
         ),
       ),

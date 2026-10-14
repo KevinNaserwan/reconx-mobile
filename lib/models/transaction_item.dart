@@ -23,19 +23,34 @@ class SyncedTransaction {
     required this.status,
   });
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'appName': appName,
+        'packageName': packageName,
+        'title': title,
+        'content': content,
+        'amount': amount,
+        'merchant': merchant,
+        'channel': channel,
+        'timestamp': timestamp.toIso8601String(),
+        'status': status,
+      };
+
   factory SyncedTransaction.fromJson(Map<String, dynamic> json) {
     return SyncedTransaction(
-      id: json['transactionRef'] ?? json['id'] ?? 'TRX-UNKNOWN',
-      appName: json['providerName'] ?? json['app'] ?? 'Bank / Wallet',
+      id: json['id'] ?? json['transactionRef'] ?? 'TRX-UNKNOWN',
+      appName: json['appName'] ?? json['providerName'] ?? json['app'] ?? 'Bank / Wallet',
       packageName: json['packageName'] ?? '',
       title: json['title'] ?? 'Pembayaran Berhasil',
       content: json['content'] ?? '',
-      amount: (json['parsedAmount'] ?? json['amount'] ?? 0).toDouble(),
+      amount: (json['amount'] ?? json['parsedAmount'] ?? 0).toDouble(),
       merchant: json['merchant'] ?? 'Merchant Partner',
       channel: json['channel'] ?? 'MOBILE_AUTO_SYNC',
-      timestamp: json['syncedAt'] != null
-          ? DateTime.tryParse(json['syncedAt']) ?? DateTime.now()
-          : DateTime.now(),
+      timestamp: json['timestamp'] != null
+          ? DateTime.tryParse(json['timestamp']) ?? DateTime.now()
+          : (json['syncedAt'] != null
+              ? DateTime.tryParse(json['syncedAt']) ?? DateTime.now()
+              : DateTime.now()),
       status: json['status'] ?? 'SYNCED_TO_LEDGER',
     );
   }
