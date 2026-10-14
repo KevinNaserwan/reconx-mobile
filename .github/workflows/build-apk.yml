@@ -34,15 +34,15 @@ jobs:
       - name: Verify Flutter Installation
         run: flutter --version
 
-      - name: Generate Official Android Gradle Wrapper
+      - name: Generate Official Android Platform Files
         run: |
           flutter create --org com.reconx.agent --project-name reconx_mobile /tmp/temp_app
-          cp /tmp/temp_app/android/gradlew android/
-          cp /tmp/temp_app/android/gradlew.bat android/
-          cp -r /tmp/temp_app/android/gradle android/
+          mkdir -p android
+          cp -r /tmp/temp_app/android/* android/
           chmod +x android/gradlew
-          ls -la android/
-          ls -la android/gradle/wrapper/
+          # Ensure minSdk is 24 for NotificationListenerService
+          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' android/app/build.gradle || true
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/g' android/app/build.gradle || true
 
       - name: Overlay ReconX Notification Interceptor & Resources
         run: |
@@ -57,7 +57,15 @@ jobs:
         run: flutter pub get
 
       - name: Build Release APK
-        run: flutter build apk --release
+        run: |
+          flutter build apk --release -v 2>&1 | tee flutter_build.log
+
+      - name: Upload Build Log on Failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-build-log
+          path: flutter_build.log
 
       - name: Prepare APK Asset
         run: |
@@ -89,6 +97,7 @@ jobs:
             - **10 Ekosistem Terkoneksi:** Pluang, Bibit, Bareksa, Ajaib, Stockbit, blu BCA, SeaBank, Superbank, ShopeePay, Tokopedia, OVO.
             - **Direct Sync ke Server Live:** Terhubung otomatis ke `https://reconx.ramuni.id/api/v1`.
             - **Anti-Double Counting Engine:** Nominal rupiah tidak akan dobel hitung saat menerima notifikasi HP dan email bukti transaksi sekaligus.
+            - **Multi-Tenant Family Household Support:** Mendukung pairing multi-aplikasi ke Family Group `FAM-KVN-8821`.
             - **Google OAuth 2.0 Single Sign-On:** Sesi login aman dan terverifikasi.
           files: dist/ReconX-Companion-v1.0.0.apk
         env:
