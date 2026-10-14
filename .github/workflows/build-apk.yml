@@ -36,9 +36,7 @@ jobs:
 
       - name: Generate Official Android Platform Files
         run: |
-          flutter create --org com.reconx.agent --project-name reconx_mobile /tmp/temp_app
-          mkdir -p android
-          cp -r /tmp/temp_app/android/* android/
+          flutter create . --platforms android --org com.reconx.agent --project-name reconx_mobile
           chmod +x android/gradlew
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' android/app/build.gradle || true
           sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/g' android/app/build.gradle || true
@@ -48,7 +46,6 @@ jobs:
           mkdir -p android/app/src/main/res
           cp -r custom_android/res/* android/app/src/main/res/
           cp custom_android/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
-          rm -rf android/app/src/main/kotlin/*
           mkdir -p android/app/src/main/kotlin/com/reconx/agent/reconx_mobile
           cp custom_android/MainActivity.kt android/app/src/main/kotlin/com/reconx/agent/reconx_mobile/MainActivity.kt
           cp custom_android/ReconXNotificationListener.kt android/app/src/main/kotlin/com/reconx/agent/reconx_mobile/ReconXNotificationListener.kt
@@ -60,13 +57,13 @@ jobs:
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError"
         run: |
-          flutter build apk --release
+          flutter build apk --release --no-tree-shake-icons
           mkdir -p dist
           APK_FILE=$(find build/ -name "*release*.apk" 2>/dev/null | head -n 1)
           if [ -z "$APK_FILE" ]; then
             APK_FILE=$(find . -name "*.apk" 2>/dev/null | head -n 1)
           fi
-          echo "Found APK: $APK_FILE"
+          echo "Found APK at: $APK_FILE"
           cp "$APK_FILE" dist/ReconX-Companion-v1.0.0.apk
           ls -lh dist/
 
