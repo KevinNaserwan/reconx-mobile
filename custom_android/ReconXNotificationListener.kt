@@ -1,4 +1,4 @@
-package com.reconx.agent
+package com.reconx.agent.reconx_mobile
 
 import android.app.Notification
 import android.content.Intent

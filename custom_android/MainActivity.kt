@@ -1,4 +1,4 @@
-package com.reconx.agent
+package com.reconx.agent.reconx_mobile
 
 import android.content.Intent
 import android.provider.Settings

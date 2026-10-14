@@ -48,9 +48,10 @@ jobs:
           mkdir -p android/app/src/main/res
           cp -r custom_android/res/* android/app/src/main/res/
           cp custom_android/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
-          mkdir -p android/app/src/main/kotlin/com/reconx/agent
-          cp custom_android/MainActivity.kt android/app/src/main/kotlin/com/reconx/agent/MainActivity.kt
-          cp custom_android/ReconXNotificationListener.kt android/app/src/main/kotlin/com/reconx/agent/ReconXNotificationListener.kt
+          rm -rf android/app/src/main/kotlin/*
+          mkdir -p android/app/src/main/kotlin/com/reconx/agent/reconx_mobile
+          cp custom_android/MainActivity.kt android/app/src/main/kotlin/com/reconx/agent/reconx_mobile/MainActivity.kt
+          cp custom_android/ReconXNotificationListener.kt android/app/src/main/kotlin/com/reconx/agent/reconx_mobile/ReconXNotificationListener.kt
 
       - name: Install Dependencies
         run: flutter pub get
@@ -61,13 +62,18 @@ jobs:
         run: |
           flutter build apk --release
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/ReconX-Companion-v1.0.0.apk
+          APK_FILE=$(find build/ -name "*release*.apk" 2>/dev/null | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            APK_FILE=$(find . -name "*.apk" 2>/dev/null | head -n 1)
+          fi
+          echo "Found APK: $APK_FILE"
+          cp "$APK_FILE" dist/ReconX-Companion-v1.0.0.apk
           ls -lh dist/
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ReconX-Companion-APK
+          name: ReconX-Companion-v1.0.0-APK
           path: dist/ReconX-Companion-v1.0.0.apk
           retention-days: 30
 
@@ -77,12 +83,14 @@ jobs:
         with:
           tag_name: v1.0.0
           name: "ReconX Mobile Companion v1.0.0"
+          draft: false
+          prerelease: false
           body: |
             ### ReconX Mobile Companion v1.0.0 Release
             
             Official Android Companion APK for **ReconX Financial Clearing & Family Reconciliation Engine**.
             
-            - 📡 **Real-Time Notification Interceptor:** Reads notifications from BCA, Superbank, SeaBank, Mandiri Livin, BRImo, BNI, ShopeePay, GoPay, OVO, and DANA.
+            - 📡 **Real-Time Notification Interceptor:** Reads notifications from BCA, Superbank, SeaBank, Mandiri Livin, BRImo, BNI, ShopeePay, GoPay, OVO, dan DANA.
             - 🔐 **Anti-Double Counting Engine:** Correlates multi-channel notifications and eliminates internal household transfers.
             - 👨‍👩‍👧‍👦 **Multi-Tenant Family Sync:** Links directly to the dashboard (`https://reconx.ramuni.id`) via invite PIN `FAM-KVN-8821`.
             
