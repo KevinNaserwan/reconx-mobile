@@ -61,8 +61,7 @@ jobs:
         run: |
           flutter build apk --release
           mkdir -p dist
-          find . -path "./dist" -prune -o -name "*.apk" -print
-          find . -path "./dist" -prune -o -name "*.apk" -exec cp {} dist/ReconX-Companion-v1.0.0.apk \;
+          cp build/app/outputs/flutter-apk/app-release.apk dist/ReconX-Companion-v1.0.0.apk
           ls -lh dist/
 
       - name: Upload APK Artifact
@@ -73,10 +72,22 @@ jobs:
           retention-days: 30
 
       - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+        with:
+          tag_name: v1.0.0
+          name: "ReconX Mobile Companion v1.0.0"
+          body: |
+            ### ReconX Mobile Companion v1.0.0 Release
+            
+            Official Android Companion APK for **ReconX Financial Clearing & Family Reconciliation Engine**.
+            
+            - 📡 **Real-Time Notification Interceptor:** Reads notifications from BCA, Superbank, SeaBank, Mandiri Livin, BRImo, BNI, ShopeePay, GoPay, OVO, and DANA.
+            - 🔐 **Anti-Double Counting Engine:** Correlates multi-channel notifications and eliminates internal household transfers.
+            - 👨‍👩‍👧‍👦 **Multi-Tenant Family Sync:** Links directly to the dashboard (`https://reconx.ramuni.id`) via invite PIN `FAM-KVN-8821`.
+            
+            #### 📥 Download & Install:
+            Download **`ReconX-Companion-v1.0.0.apk`** below and install it directly on your Android phone.
+          files: dist/ReconX-Companion-v1.0.0.apk
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create v1.0.0 dist/ReconX-Companion-v1.0.0.apk \
-            --title "ReconX Mobile Companion v1.0.0" \
-            --notes "ReconX Mobile Companion v1.0.0 Release APK" \
-            || gh release upload v1.0.0 dist/ReconX-Companion-v1.0.0.apk --clobber
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
