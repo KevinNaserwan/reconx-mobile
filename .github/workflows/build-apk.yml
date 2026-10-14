@@ -70,7 +70,13 @@ jobs:
       - name: Prepare APK Asset
         run: |
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-release.apk dist/ReconX-Companion-v1.0.0.apk
+          find build -name "*.apk"
+          APK_FILE=$(find build -name "*.apk" | grep -i "release" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            APK_FILE=$(find build -name "*.apk" | head -n 1)
+          fi
+          echo "Selected APK: $APK_FILE"
+          cp "$APK_FILE" dist/ReconX-Companion-v1.0.0.apk
           ls -lh dist/
 
       - name: Upload APK Artifact
