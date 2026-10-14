@@ -81,10 +81,9 @@ jobs:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError"
         run: |
           flutter build apk --release --no-tree-shake-icons 2>&1 | tee build_output.log
-        continue-on-error: true
 
-      - name: Push Build Log to Branch
-        if: always()
+      - name: Push Build Log to Branch on Failure
+        if: failure()
         run: |
           git config --global user.email "bot@reconx.io"
           git config --global user.name "ReconX Builder"

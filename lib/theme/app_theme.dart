@@ -6,6 +6,7 @@ class AppTheme {
   static const Color primaryEmerald = Color(0xFF10B981);
   static const Color primaryTeal = Color(0xFF0D9488);
   static const Color primaryCyan = Color(0xFF06B6D4);
+  static const Color dangerRose = Color(0xFFF43F5E);
 
   // Dark Theme Colors
   static const Color darkBg = Color(0xFF020617);

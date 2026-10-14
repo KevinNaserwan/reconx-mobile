@@ -286,7 +286,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         fontSize: 12,
                         color: _testResult!.startsWith('Connected')
                             ? AppTheme.primaryEmerald
-                            : Colors.roseAccent,
+                            : AppTheme.dangerRose,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -311,11 +311,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     );
                   }
                 },
-                icon: const Icon(Icons.logout_rounded, color: Colors.roseAccent),
+                icon: const Icon(Icons.logout_rounded, color: AppTheme.dangerRose),
                 label: Text(
                   'Sign Out from Google',
                   style: GoogleFonts.plusJakartaSans(
-                    color: Colors.roseAccent,
+                    color: AppTheme.dangerRose,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
