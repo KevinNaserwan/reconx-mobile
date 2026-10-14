@@ -31,10 +31,7 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Verify Flutter Installation
-        run: flutter --version
-
-      - name: Clean & Re-generate Official Android Platform
+      - name: Clean & Generate Official Android Platform Files
         run: |
           rm -rf android
           flutter create . --platforms android --org com.reconx.agent --project-name reconx_mobile
@@ -42,28 +39,47 @@ jobs:
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' android/app/build.gradle || true
           sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/g' android/app/build.gradle || true
 
-      - name: Overlay ReconX Notification Interceptor & Resources
+      - name: Configure Notification Interceptor & Android Permissions
         run: |
           mkdir -p android/app/src/main/res
           cp -r custom_android/res/* android/app/src/main/res/
-          cp custom_android/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
           mkdir -p android/app/src/main/kotlin/com/reconx/agent/reconx_mobile
           cp custom_android/MainActivity.kt android/app/src/main/kotlin/com/reconx/agent/reconx_mobile/MainActivity.kt
           cp custom_android/ReconXNotificationListener.kt android/app/src/main/kotlin/com/reconx/agent/reconx_mobile/ReconXNotificationListener.kt
+          python3 -c "
+          with open('android/app/src/main/AndroidManifest.xml', 'r') as f:
+              c = f.read()
+          perms = '''
+              <uses-permission android:name=\"android.permission.INTERNET\"/>
+              <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>
+              <uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\"/>
+          '''
+          srv = '''
+                  <service
+                      android:name=\".ReconXNotificationListener\"
+                      android:label=\"ReconX Financial Notification Interceptor\"
+                      android:permission=\"android.permission.BIND_NOTIFICATION_LISTENER_SERVICE\"
+                      android:exported=\"true\">
+                      <intent-filter>
+                          <action android:name=\"android.service.notification.NotificationListenerService\" />
+                      </intent-filter>
+                  </service>
+          '''
+          c = c.replace('<application', perms + '    <application', 1)
+          c = c.replace('</application>', srv + '    </application>', 1)
+          with open('android/app/src/main/AndroidManifest.xml', 'w') as f:
+              f.write(c)
+          "
+          cat android/app/src/main/AndroidManifest.xml
 
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build & Package Release APK
+      - name: Build Release APK
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError"
         run: |
-          if ! flutter build apk --release --no-tree-shake-icons > build.log 2>&1; then
-            echo "::error::Flutter build release failed!"
-            cat build.log
-            exit 1
-          fi
-          cat build.log | tail -n 25
+          flutter build apk --release --no-tree-shake-icons
           mkdir -p dist
           APK_FILE=$(find build/ -name "*release*.apk" 2>/dev/null | head -n 1)
           if [ -z "$APK_FILE" ]; then
@@ -93,7 +109,7 @@ jobs:
             
             Official Android Companion APK for **ReconX Financial Clearing & Family Reconciliation Engine**.
             
-            - 📡 **Real-Time Notification Interceptor:** Reads notifications from BCA, Superbank, SeaBank, Mandiri Livin, BRImo, BNI, ShopeePay, GoPay, OVO, dan DANA.
+            - 📡 **Real-Time Notification Interceptor:** Reads notifications from BCA, Superbank, SeaBank, Mandiri Livin, BRImo, BNI, ShopeePay, GoPay, OVO, and DANA.
             - 🔐 **Anti-Double Counting Engine:** Correlates multi-channel notifications and eliminates internal household transfers.
             - 👨‍👩‍👧‍👦 **Multi-Tenant Family Sync:** Links directly to the dashboard (`https://reconx.ramuni.id`) via invite PIN `FAM-KVN-8821`.
             
