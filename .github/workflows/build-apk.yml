@@ -40,7 +40,6 @@ jobs:
           mkdir -p android
           cp -r /tmp/temp_app/android/* android/
           chmod +x android/gradlew
-          # Ensure minSdk is 24 for NotificationListenerService
           sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' android/app/build.gradle || true
           sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/g' android/app/build.gradle || true
 
@@ -56,36 +55,21 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Release APK
+      - name: Build & Package Release APK
         run: |
-          flutter build apk --release -v 2>&1 | tee flutter_build.log
-
-      - name: Upload Build Log on Failure
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-build-log
-          path: flutter_build.log
-
-      - name: Prepare APK Asset
-        run: |
+          flutter build apk --release
           mkdir -p dist
-          echo "Searching for APKs..."
-          find build -name "*.apk" || true
-          APK_FILE=$(find build -name "*.apk" 2>/dev/null | head -n 1)
-          if [ -z "$APK_FILE" ]; then
-            echo "Searching whole workspace for APK..."
-            APK_FILE=$(find . -name "*.apk" 2>/dev/null | head -n 1)
-          fi
-          echo "Selected APK: $APK_FILE"
-          cp "$APK_FILE" dist/ReconX-Companion-v1.0.0.apk
+          find . -name "*.apk"
+          find . -name "*.apk" -exec cp {} dist/ReconX-Companion-v1.0.0.apk \;
           ls -lh dist/
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ReconX-Companion-v1.0.0-APK
-          path: dist/ReconX-Companion-v1.0.0.apk
+          path: |
+            dist/ReconX-Companion-v1.0.0.apk
+            build/app/outputs/**/*.apk
           retention-days: 30
 
       - name: Create or Update GitHub Release
@@ -107,6 +91,8 @@ jobs:
             - **Anti-Double Counting Engine:** Nominal rupiah tidak akan dobel hitung saat menerima notifikasi HP dan email bukti transaksi sekaligus.
             - **Multi-Tenant Family Household Support:** Mendukung pairing multi-aplikasi ke Family Group `FAM-KVN-8821`.
             - **Google OAuth 2.0 Single Sign-On:** Sesi login aman dan terverifikasi.
-          files: dist/ReconX-Companion-v1.0.0.apk
+          files: |
+            dist/ReconX-Companion-v1.0.0.apk
+            build/app/outputs/**/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
