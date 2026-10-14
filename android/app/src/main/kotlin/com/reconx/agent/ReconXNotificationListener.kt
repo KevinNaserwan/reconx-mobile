@@ -24,7 +24,9 @@ class ReconXNotificationListener : NotificationListenerService() {
             "com.bca",
             "com.bibit.id",
             "com.ajaib.android",
-            "id.stockbit.android"
+            "id.stockbit.android",
+            "com.pluang.android",
+            "com.bareksa.app"
         )
     }
 

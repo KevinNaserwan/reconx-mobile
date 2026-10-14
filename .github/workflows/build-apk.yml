@@ -1,0 +1,76 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Build & Release Android APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17 (Temurin)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.3'
+          channel: 'stable'
+          cache: true
+
+      - name: Verify Flutter Installation
+        run: flutter --version
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Release APK
+        run: flutter build apk --release
+
+      - name: Prepare APK Asset
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk dist/ReconX-Companion-v1.0.0.apk
+          ls -lh dist/
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ReconX-Companion-v1.0.0-APK
+          path: dist/ReconX-Companion-v1.0.0.apk
+          retention-days: 30
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+        with:
+          tag_name: v1.0.0
+          name: "ReconX Mobile Companion v1.0.0"
+          body: |
+            ### 📱 ReconX Mobile Companion (Release APK)
+            
+            **Unduh dan Install di Android:**
+            Download file `ReconX-Companion-v1.0.0.apk` di bawah ini, lalu buka dan install langsung pada perangkat smartphone Android Anda.
+
+            #### 🚀 Fitur Terintegrasi:
+            - **Background Notification Interceptor:** Memantau otomatis notifikasi pembayaran masuk di status bar HP.
+            - **10 Ekosistem Terkoneksi:** Pluang, Bibit, Bareksa, Ajaib, Stockbit, blu BCA, SeaBank, Superbank, ShopeePay, Tokopedia, OVO.
+            - **Direct Sync ke Server Live:** Terhubung otomatis ke `https://reconx.ramuni.id/api/v1`.
+            - **Anti-Double Counting Engine:** Nominal rupiah tidak akan dobel hitung saat menerima notifikasi HP dan email bukti transaksi sekaligus.
+            - **Google OAuth 2.0 Single Sign-On:** Sesi login aman dan terverifikasi.
+          files: dist/ReconX-Companion-v1.0.0.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

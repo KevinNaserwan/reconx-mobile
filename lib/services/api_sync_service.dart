@@ -15,7 +15,7 @@ class ApiSyncService extends ChangeNotifier {
   static const MethodChannel _methodChannel = MethodChannel('com.reconx.agent/methods');
   static const EventChannel _eventChannel = EventChannel('com.reconx.agent/events');
 
-  String _backendUrl = 'http://10.0.2.2:5000/api/v1'; // 10.0.2.2 points to localhost from Android emulator
+  String _backendUrl = 'https://reconx.ramuni.id/api/v1'; // Default live production endpoint
   String get backendUrl => _backendUrl;
 
   bool _isServiceActive = true;
@@ -40,7 +40,7 @@ class ApiSyncService extends ChangeNotifier {
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    _backendUrl = prefs.getString('reconx_backend_url') ?? 'http://10.0.2.2:5000/api/v1';
+    _backendUrl = prefs.getString('reconx_backend_url') ?? 'https://reconx.ramuni.id/api/v1';
     _isServiceActive = prefs.getBool('reconx_service_active') ?? true;
 
     // Initial mock history for demo presentation
