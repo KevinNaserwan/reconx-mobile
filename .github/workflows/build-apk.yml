@@ -58,9 +58,12 @@ jobs:
       - name: Build & Package Release APK
         run: |
           flutter build apk --release
+          echo "=== Output files in build/app/outputs ==="
+          ls -R build/app/outputs/ || true
           mkdir -p dist
-          find . -name "*.apk"
-          find . -name "*.apk" -exec cp {} dist/ReconX-Companion-v1.0.0.apk \;
+          APK_PATH=$(find build/app/outputs -type f -name "*.apk" | head -n 1)
+          echo "Selected APK: $APK_PATH"
+          cp "$APK_PATH" dist/ReconX-Companion-v1.0.0.apk
           ls -lh dist/
 
       - name: Upload APK Artifact
