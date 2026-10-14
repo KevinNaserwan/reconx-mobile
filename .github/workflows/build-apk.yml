@@ -34,15 +34,16 @@ jobs:
       - name: Clean & Generate Official Android Platform Files
         run: |
           rm -rf android
-          flutter create . --platforms android --org com.reconx.agent --project-name reconx_mobile
+          flutter create . --platforms android --org com.reconx.agent --project-name reconx_mobile -a kotlin
           chmod +x android/gradlew
-          sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' android/app/build.gradle || true
-          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/g' android/app/build.gradle || true
+          find android -name "build.gradle*" -exec sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' {} + || true
+          find android -name "build.gradle*" -exec sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/g' {} + || true
 
       - name: Configure Notification Interceptor & Android Permissions
         run: |
           mkdir -p android/app/src/main/res
           cp -r custom_android/res/* android/app/src/main/res/
+          find android/app/src/main -name "MainActivity.*" -delete || true
           mkdir -p android/app/src/main/kotlin/com/reconx/agent/reconx_mobile
           cp custom_android/MainActivity.kt android/app/src/main/kotlin/com/reconx/agent/reconx_mobile/MainActivity.kt
           cp custom_android/ReconXNotificationListener.kt android/app/src/main/kotlin/com/reconx/agent/reconx_mobile/ReconXNotificationListener.kt
@@ -56,7 +57,7 @@ jobs:
           '''
           srv = '''
                   <service
-                      android:name=\".ReconXNotificationListener\"
+                      android:name=\"com.reconx.agent.reconx_mobile.ReconXNotificationListener\"
                       android:label=\"ReconX Financial Notification Interceptor\"
                       android:permission=\"android.permission.BIND_NOTIFICATION_LISTENER_SERVICE\"
                       android:exported=\"true\">
@@ -70,24 +71,48 @@ jobs:
           with open('android/app/src/main/AndroidManifest.xml', 'w') as f:
               f.write(c)
           "
-          cat android/app/src/main/AndroidManifest.xml
 
       - name: Install Dependencies
         run: flutter pub get
 
       - name: Build Release APK
+        id: build_step
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError"
         run: |
-          flutter build apk --release --no-tree-shake-icons
-          mkdir -p dist
+          flutter build apk --release --no-tree-shake-icons 2>&1 | tee build_output.log
+        continue-on-error: true
+
+      - name: Verify Build & Inspect Logs
+        run: |
           APK_FILE=$(find build/ -name "*release*.apk" 2>/dev/null | head -n 1)
           if [ -z "$APK_FILE" ]; then
             APK_FILE=$(find . -name "*.apk" 2>/dev/null | head -n 1)
           fi
-          echo "Found APK at: $APK_FILE"
+          if [ -z "$APK_FILE" ]; then
+            echo "::error::Flutter APK not found!"
+            python3 -c "
+            with open('build_output.log', 'r', errors='ignore') as f:
+                lines = f.readlines()
+            for line in lines[-60:]:
+                l = line.strip()
+                if l:
+                    print(f'::error::{l}')
+            "
+            exit 1
+          fi
+          echo "Found APK: $APK_FILE"
+          mkdir -p dist
           cp "$APK_FILE" dist/ReconX-Companion-v1.0.0.apk
           ls -lh dist/
+
+      - name: Upload Build Log Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-build-log
+          path: build_output.log
+          retention-days: 7
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
