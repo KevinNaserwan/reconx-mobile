@@ -34,9 +34,15 @@ jobs:
       - name: Verify Flutter Installation
         run: flutter --version
 
-      - name: Generate Official Android Platform Files
+      - name: Generate Official Android Gradle Wrapper
         run: |
-          flutter create . --platforms=android --org=com.reconx.agent
+          flutter create --org com.reconx.agent --project-name reconx_mobile /tmp/temp_app
+          cp /tmp/temp_app/android/gradlew android/
+          cp /tmp/temp_app/android/gradlew.bat android/
+          cp -r /tmp/temp_app/android/gradle android/
+          chmod +x android/gradlew
+          ls -la android/
+          ls -la android/gradle/wrapper/
 
       - name: Overlay ReconX Notification Interceptor & Resources
         run: |
