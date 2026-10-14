@@ -34,6 +34,19 @@ jobs:
       - name: Verify Flutter Installation
         run: flutter --version
 
+      - name: Generate Official Android Platform Files
+        run: |
+          flutter create . --platforms=android --org=com.reconx.agent
+
+      - name: Overlay ReconX Notification Interceptor & Resources
+        run: |
+          mkdir -p android/app/src/main/res
+          cp -r custom_android/res/* android/app/src/main/res/
+          cp custom_android/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          mkdir -p android/app/src/main/kotlin/com/reconx/agent
+          cp custom_android/MainActivity.kt android/app/src/main/kotlin/com/reconx/agent/MainActivity.kt
+          cp custom_android/ReconXNotificationListener.kt android/app/src/main/kotlin/com/reconx/agent/ReconXNotificationListener.kt
+
       - name: Install Dependencies
         run: flutter pub get
 
@@ -63,7 +76,7 @@ jobs:
             ### 📱 ReconX Mobile Companion (Release APK)
             
             **Unduh dan Install di Android:**
-            Download file `ReconX-Companion-v1.0.0.apk` di bawah ini, lalu buka dan install langsung pada perangkat smartphone Android Anda.
+            Download file `ReconX-Companion-v1.0.0.apk` di bawah ini, lalu buka dan install langsung pada smartphone Android Anda.
 
             #### 🚀 Fitur Terintegrasi:
             - **Background Notification Interceptor:** Memantau otomatis notifikasi pembayaran masuk di status bar HP.
