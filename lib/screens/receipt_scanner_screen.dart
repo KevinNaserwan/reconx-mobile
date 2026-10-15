@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../services/api_sync_service.dart';
+import '../services/permission_service.dart';
 import '../services/receipt_scanner_service.dart';
 import '../theme/app_theme.dart';
 
@@ -16,7 +17,13 @@ class ReceiptScannerScreen extends StatefulWidget {
 }
 
 class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
-  final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+  NumberFormat get currencyFormat {
+    try {
+      return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    } catch (_) {
+      return NumberFormat.currency(symbol: 'Rp ', decimalDigits: 0);
+    }
+  }
 
   bool _isProcessing = false;
   ReceiptScanResult? _scanResult;
@@ -56,6 +63,11 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
   }
 
   Future<void> _handleCapture(bool fromCamera) async {
+    if (fromCamera) {
+      final hasPerm = await PermissionService().requestCameraPermission(context);
+      if (!hasPerm) return;
+    }
+
     setState(() => _isProcessing = true);
 
     final xFile = fromCamera
@@ -166,10 +178,10 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
       ),
       body: SafeArea(
         child: _isProcessing
-            ? const Center(
+            ? Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+                  children: const [
                     CircularProgressIndicator(color: AppTheme.primaryEmerald),
                     SizedBox(height: 16),
                     Text(

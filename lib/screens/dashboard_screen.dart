@@ -16,7 +16,13 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+  NumberFormat get currencyFormat {
+    try {
+      return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    } catch (_) {
+      return NumberFormat.currency(symbol: 'Rp ', decimalDigits: 0);
+    }
+  }
 
   final List<Map<String, String>> monitoredApps = [
     {'name': 'Pluang (Emas & Saham)', 'pkg': 'com.pluang.android', 'color': '0xFFFBBF24'},
@@ -31,171 +37,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     {'name': 'Tokopedia', 'pkg': 'com.tokopedia.tkpd', 'color': '0xFF10B981'},
     {'name': 'OVO', 'pkg': 'ovo.id', 'color': '0xFF8B5CF6'},
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    ApiSyncService().init();
-  }
-
-  void _showTestNotificationSheet() {
-    final textController = TextEditingController(
-      text: 'Pembayaran QRIS sebesar Rp 65.000 ke Solaria telah berhasil.',
-    );
-    String selectedPkg = 'id.co.bcadigital.blu';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppTheme.darkCard,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setSheetState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Simulasi Notifikasi Masuk',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(ctx),
-                        icon: const Icon(Icons.close, color: Colors.white70),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Pilih kanal bank / e-wallet untuk disimulasikan:',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white60),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: monitoredApps.map((app) {
-                      final isSelected = selectedPkg == app['pkg'];
-                      return ChoiceChip(
-                        label: Text(app['name']!),
-                        selected: isSelected,
-                        selectedColor: AppTheme.primaryEmerald.withOpacity(0.2),
-                        labelStyle: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isSelected ? AppTheme.primaryEmerald : Colors.white70,
-                        ),
-                        side: BorderSide(
-                          color: isSelected ? AppTheme.primaryEmerald : AppTheme.darkBorder,
-                        ),
-                        backgroundColor: AppTheme.darkBg,
-                        onSelected: (val) {
-                          setSheetState(() {
-                            selectedPkg = app['pkg']!;
-                            if (app['name']!.contains('Pluang')) {
-                              textController.text = 'Pembelian Saham AS NVDA senilai Rp 500.000 telah berhasil dieksekusi di market.';
-                            } else if (app['name']!.contains('Bibit')) {
-                              textController.text = 'Pembelian Reksa Dana Pasar Uang senilai Rp 1.000.000 telah diverifikasi KSEI.';
-                            } else if (app['name']!.contains('Bareksa')) {
-                              textController.text = 'Order Reksa Dana Pendapatan Tetap sebesar Rp 750.000 telah sukses.';
-                            } else if (app['name']!.contains('Ajaib')) {
-                              textController.text = 'Order Beli Saham BBCA Rp 2.500.000 telah MATCH di bursa.';
-                            } else if (app['name']!.contains('Stockbit')) {
-                              textController.text = 'Order buy 10 lot BMRI Rp 6.800.000 telah executed.';
-                            } else if (app['name']!.contains('blu')) {
-                              textController.text = 'Pembayaran QRIS sebesar Rp 45.000 ke Kopi Kenangan telah berhasil.';
-                            } else if (app['name']!.contains('Shopee')) {
-                              textController.text = 'Pembayaran sebesar Rp 135.000 ke Toko Komputer Sukses telah selesai.';
-                            } else if (app['name']!.contains('SeaBank')) {
-                              textController.text = 'Transfer masuk Rp 500.000 dari BCA Digital berhasil.';
-                            }
-                          });
-                        },
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: textController,
-                    maxLines: 3,
-                    style: GoogleFonts.plusJakartaSans(color: Colors.white, fontSize: 13),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: AppTheme.darkBg,
-                      hintText: 'Teks notifikasi masuk...',
-                      hintStyle: GoogleFonts.plusJakartaSans(color: Colors.white38),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        Navigator.pop(ctx);
-                        final selectedAppObj = monitoredApps.firstWhere((a) => a['pkg'] == selectedPkg);
-                        await ApiSyncService().syncNotification(
-                          appPackage: selectedPkg,
-                          appName: selectedAppObj['name'],
-                          title: 'Transaksi Sukses',
-                          content: textController.text,
-                        );
-
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              backgroundColor: AppTheme.primaryEmerald,
-                              content: Text(
-                                'Transaksi berhasil disinkronkan ke ReconX Web!',
-                                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.send_rounded, size: 18),
-                      label: Text(
-                        'Kirim Notifikasi ke Ledger',
-                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryEmerald,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -227,7 +68,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'ReconX Companion',
+                      'Reconx',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
@@ -402,7 +243,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: GestureDetector(
-                        onTap: _showTestNotificationSheet,
+                        onTap: () => widget.onNavigateTab?.call(1), // Mutasi Tab
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
@@ -418,12 +259,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   color: AppTheme.primaryCyan.withOpacity(0.2),
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.flash_on_rounded, size: 20, color: AppTheme.primaryCyan),
+                                child: const Icon(Icons.receipt_long_rounded, size: 20, color: AppTheme.primaryCyan),
                               ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'Test Notifikasi',
+                                  'Lihat Mutasi',
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,

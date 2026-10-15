@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'screens/biometric_lock_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_navigation_screen.dart';
@@ -9,14 +11,56 @@ import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Indonesian locale for dates and currencies safely
+  try {
+    await initializeDateFormatting('id_ID', null);
+  } catch (e) {
+    debugPrint('DateFormatting fallback: $e');
+  }
+
+  // Set up custom error widget to prevent blank grey screens
+  ErrorWidget.builder = (FlutterErrorDetails details) {
+    return Material(
+      color: AppTheme.darkBg,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.info_outline_rounded, color: AppTheme.primaryEmerald, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                'Reconx Sedang Menyiapkan Data',
+                style: GoogleFonts.plusJakartaSans(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Silakan buka kembali menu ini dalam beberapa saat.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(color: Colors.white60, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  };
+
   await AuthService().init();
   await BiometricService().init();
   await ApiSyncService().init();
-  runApp(const ReconXMobileApp());
+
+  runApp(const ReconxApp());
 }
 
-class ReconXMobileApp extends StatelessWidget {
-  const ReconXMobileApp({super.key});
+class ReconxApp extends StatelessWidget {
+  const ReconxApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +80,7 @@ class ReconXMobileApp extends StatelessWidget {
         }
 
         return MaterialApp(
-          title: 'ReconX Companion',
+          title: 'Reconx',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,

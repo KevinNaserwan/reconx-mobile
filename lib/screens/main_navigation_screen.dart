@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/permission_service.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_screen.dart';
 import 'family_screen.dart';
@@ -23,28 +24,39 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+
+    // Proactively prompt user for Camera, Notification & Interceptor permissions on startup
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      PermissionService().requestAppPermissions(context);
+    });
   }
 
   void _onTabTapped(int index) {
     setState(() => _currentIndex = index);
   }
 
+  Widget _buildBody() {
+    switch (_currentIndex) {
+      case 0:
+        return DashboardScreen(onNavigateTab: _onTabTapped);
+      case 1:
+        return TransactionsScreen(onNavigateToScan: () => _onTabTapped(2));
+      case 2:
+        return ReceiptScannerScreen(onScanComplete: () => _onTabTapped(1));
+      case 3:
+        return const FamilyScreen();
+      case 4:
+        return const SettingsScreen();
+      default:
+        return DashboardScreen(onNavigateTab: _onTabTapped);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final screens = [
-      DashboardScreen(onNavigateTab: _onTabTapped),
-      TransactionsScreen(onNavigateToScan: () => _onTabTapped(2)),
-      ReceiptScannerScreen(onScanComplete: () => _onTabTapped(1)),
-      const FamilyScreen(),
-      const SettingsScreen(),
-    ];
-
     return Scaffold(
       backgroundColor: AppTheme.darkBg,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: screens,
-      ),
+      body: _buildBody(),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: AppTheme.darkCard,

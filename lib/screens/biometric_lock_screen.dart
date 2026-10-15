@@ -89,7 +89,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen> {
               const SizedBox(height: 24),
 
               Text(
-                'ReconX Terkunci',
+                'Reconx Terkunci',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,

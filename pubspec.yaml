@@ -1,7 +1,7 @@
 name: reconx_mobile
 description: "ReconX Mobile Companion — Real-time Android Notification Sync Agent & Receipt Scanner for Personal Bank & E-Wallet Transactions."
 publish_to: 'none'
-version: 1.1.0+2
+version: 1.2.0+3
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -16,6 +16,7 @@ dependencies:
   google_fonts: ^6.2.1
   image_picker: ^1.1.2
   local_auth: ^2.3.0
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:

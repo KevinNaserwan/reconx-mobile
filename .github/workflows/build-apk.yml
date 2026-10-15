@@ -52,6 +52,7 @@ jobs:
           cp custom_android/MainActivity.kt android/app/src/main/kotlin/com/reconx/agent/reconx_mobile/MainActivity.kt
           cp custom_android/ReconXNotificationListener.kt android/app/src/main/kotlin/com/reconx/agent/reconx_mobile/ReconXNotificationListener.kt
           python3 -c "
+          import re
           with open('android/app/src/main/AndroidManifest.xml', 'r') as f:
               c = f.read()
           perms = '''
@@ -75,6 +76,7 @@ jobs:
           '''
           c = c.replace('<application', perms + '    <application', 1)
           c = c.replace('</application>', srv + '    </application>', 1)
+          c = re.sub(r'android:label=\"[^\"]*\"', 'android:label=\"Reconx\"', c)
           with open('android/app/src/main/AndroidManifest.xml', 'w') as f:
               f.write(c)
           "
@@ -137,40 +139,42 @@ jobs:
           fi
           echo "Found APK: $APK_FILE"
           mkdir -p dist
+          cp "$APK_FILE" dist/Reconx-v1.2.0.apk
           cp "$APK_FILE" dist/ReconX-Companion-v1.1.0.apk
           ls -lh dist/
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ReconX-Companion-v1.1.0-APK
-          path: dist/ReconX-Companion-v1.1.0.apk
+          name: Reconx-v1.2.0-APK
+          path: dist/Reconx-v1.2.0.apk
           retention-days: 30
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.1.0
-          name: "ReconX Mobile Companion v1.1.0"
+          tag_name: v1.2.0
+          name: "Reconx Android v1.2.0"
           draft: false
           prerelease: false
           overwrite: true
           body: |
-            ### ReconX Mobile Companion v1.1.0 Release
+            ### Reconx Android v1.2.0 Release
             
-            Official Android Companion APK for **ReconX Financial Clearing & Family Reconciliation Engine**.
+            Pembaruan resmi aplikasi Android **Reconx** — Family & Personal Financial Clearing Engine.
             
-            - 🚀 **Bottom Navigation:** 5 modul utama (Beranda, Mutasi, Scan Nota Fisik, Keluarga, & Pengaturan).
-            - 📸 **Receipt & Payment Scanner:** Auto capture via kamera & upload nota fisik dengan AI OCR expense extractor.
-            - 🔐 **Biometric Security:** Buka aplikasi dengan Sidik Jari (Fingerprint / Face Unlock).
-            - 🎨 **Unified App Icon:** Launcher icon dan internal branding 100% seragam dengan versi Web ReconX.
-            - 📡 **Notification Interceptor:** BCA, Superbank, SeaBank, Mandiri Livin, BRImo, BNI, ShopeePay, GoPay, OVO, DANA.
-            - 👨‍👩‍👧‍👦 **Multi-Tenant SaaS Cluster:** Hubungkan akun ke dashboard web (PIN unik `FAM-XXX-XXXX`).
-            - 🚪 **Logout & Factory Reset:** Keluar akun dengan aman dan reset data lokal.
+            - 🏷️ **App Name:** Resmi diubah menjadi **Reconx** pada launcher HP Android.
+            - 🛡️ **Zero Blank Fix:** Perbaikan penanganan locale intl dan dynamic body switcher anti-blank abu-abu pada seluruh tab (Mutasi, Scan Nota, Keluarga, & Akun).
+            - 📷 **Proactive Permission Dialog:** Dialog izin akses otomatis saat aplikasi dibuka (Kamera, Notifikasi, & Interseptor Mutasi).
+            - 📸 **Kamera & Scan Nota:** Pemeriksaan runtime permission sebelum memotret struk fisik & QRIS.
+            - 🌐 **Clean Login & Google Branding:** Desain halaman login baru dengan official Google 4-color asset dan tab register terintegrasi.
+            - 🧹 **Pembersihan Fitur Test:** Tombol simulasi test notifikasi dihapus dari halaman Beranda untuk tampilan produksi yang bersih.
             
-            #### 📥 Download & Install:
-            Download file **`ReconX-Companion-v1.1.0.apk`** di bawah ini dan install langsung di HP Android Anda.
-          files: dist/ReconX-Companion-v1.1.0.apk
+            #### 📥 Download Langsung:
+            Download file **`Reconx-v1.2.0.apk`** di bawah ini dan install langsung di HP Android Anda.
+          files: |
+            dist/Reconx-v1.2.0.apk
+            dist/ReconX-Companion-v1.1.0.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

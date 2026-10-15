@@ -124,7 +124,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: const [
                     TextSpan(text: 'Recon'),
                     TextSpan(
-                      text: 'X',
+                      text: 'x',
                       style: TextStyle(color: AppTheme.primaryEmerald),
                     ),
                   ],
@@ -223,30 +223,47 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 20),
 
               // Fast Google Sign-In Button
-              SizedBox(
+              Container(
                 width: double.infinity,
-                height: 48,
+                height: 50,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withOpacity(0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _handleGoogleSignIn,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
-                    foregroundColor: Colors.black87,
-                    elevation: 0,
+                    foregroundColor: const Color(0xFF1F2937),
+                    elevation: 1,
+                    shadowColor: Colors.black26,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.g_mobiledata_rounded, size: 26, color: Colors.blueAccent),
-                      const SizedBox(width: 8),
+                      Image.asset(
+                        'assets/images/google_logo.png',
+                        width: 22,
+                        height: 22,
+                        fit: BoxFit.contain,
+                      ),
+                      const SizedBox(width: 12),
                       Text(
-                        'Masuk Cepat dengan Google',
+                        _activeTab == 0 ? 'Masuk dengan Akun Google' : 'Daftar dengan Akun Google',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.w700,
                           color: const Color(0xFF1F2937),
+                          letterSpacing: 0.2,
                         ),
                       ),
                     ],

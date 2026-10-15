@@ -15,8 +15,21 @@ class TransactionsScreen extends StatefulWidget {
 }
 
 class _TransactionsScreenState extends State<TransactionsScreen> {
-  final currencyFormat = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
-  final dateFormat = DateFormat('dd MMM yyyy, HH:mm', 'id_ID');
+  NumberFormat get currencyFormat {
+    try {
+      return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
+    } catch (_) {
+      return NumberFormat.currency(symbol: 'Rp ', decimalDigits: 0);
+    }
+  }
+
+  DateFormat get dateFormat {
+    try {
+      return DateFormat('dd MMM yyyy, HH:mm', 'id_ID');
+    } catch (_) {
+      return DateFormat('dd MMM yyyy, HH:mm');
+    }
+  }
 
   String _selectedFilter = 'Semua';
   String _searchQuery = '';
