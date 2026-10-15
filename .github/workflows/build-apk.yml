@@ -62,6 +62,7 @@ jobs:
 
       - name: Flutter Analyze
         run: |
+          set -o pipefail
           flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee analyze.log || {
             echo "::error::Flutter analyze failed!"
             echo "==================== ANALYZE LOG ===================="

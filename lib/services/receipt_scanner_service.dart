@@ -398,6 +398,7 @@ class ReceiptScannerService {
           score: 130,
           sourceLine: tenderLine ?? 'TUNAI',
           reason: 'Tunai tanpa kembalian (Exact Cash Payment)',
+        ));
       }
     }
 
