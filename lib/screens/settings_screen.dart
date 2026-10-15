@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/api_sync_service.dart';
 import '../services/auth_service.dart';
 import '../services/biometric_service.dart';
+import '../services/language_service.dart';
 import '../services/theme_service.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
@@ -30,6 +31,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     String selectedRole = user?.role ?? 'Head of Household (Suami)';
 
     final isDark = AppTheme.isDark(context);
+    final lang = LanguageService();
 
     final roles = [
       'Head of Household (Suami)',
@@ -73,7 +75,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Lengkapi Data Pribadi',
+                    lang.tr('edit_profile'),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -205,7 +207,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     child: Text(
-                      'Simpan Perubahan',
+                      lang.tr('save_changes'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w800,
@@ -312,6 +314,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final user = AuthService().currentUser;
     final syncService = ApiSyncService();
     final themeService = ThemeService();
+    final lang = LanguageService();
     final isDark = AppTheme.isDark(context);
 
     return Scaffold(
@@ -320,7 +323,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: AppTheme.getCard(context),
         elevation: 0,
         title: Text(
-          'Pengaturan & Profil',
+          lang.tr('settings_title'),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w800,
@@ -425,7 +428,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onPressed: _showEditProfileDialog,
                       icon: const Icon(Icons.edit_rounded, size: 16),
                       label: Text(
-                        'Edit & Lengkapi Data Profil',
+                        lang.tr('edit_profile'),
                         style: GoogleFonts.plusJakartaSans(
                           fontWeight: FontWeight.w700,
                           fontSize: 12,
@@ -445,9 +448,52 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 24),
 
+            // Language Selector Section (ID, EN, ZH)
+            Text(
+              lang.tr('lang_title'),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.getTextSecondary(context),
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.getCard(context),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.getBorder(context)),
+              ),
+              child: Row(
+                children: [
+                  _buildOptionItem(
+                    title: '🇮🇩 Indonesia',
+                    isSelected: lang.currentLanguage == 'id',
+                    onTap: () => lang.setLanguage('id'),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildOptionItem(
+                    title: '🇬🇧 English',
+                    isSelected: lang.currentLanguage == 'en',
+                    onTap: () => lang.setLanguage('en'),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildOptionItem(
+                    title: '🇨🇳 中文',
+                    isSelected: lang.currentLanguage == 'zh',
+                    onTap: () => lang.setLanguage('zh'),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
             // Theme Mode Selector (White / Dark Mode)
             Text(
-              'TEMA TAMPILAN',
+              lang.tr('theme_title'),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -466,21 +512,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Row(
                 children: [
                   _buildThemeOption(
-                    title: 'Gelap (Dark)',
+                    title: lang.tr('theme_dark'),
                     icon: Icons.dark_mode_rounded,
                     isSelected: themeService.themeMode == ThemeMode.dark,
                     onTap: () => themeService.setThemeMode(ThemeMode.dark),
                   ),
                   const SizedBox(width: 8),
                   _buildThemeOption(
-                    title: 'Terang (White)',
+                    title: lang.tr('theme_light'),
                     icon: Icons.light_mode_rounded,
                     isSelected: themeService.themeMode == ThemeMode.light,
                     onTap: () => themeService.setThemeMode(ThemeMode.light),
                   ),
                   const SizedBox(width: 8),
                   _buildThemeOption(
-                    title: 'Sistem',
+                    title: lang.tr('theme_system'),
                     icon: Icons.smartphone_rounded,
                     isSelected: themeService.themeMode == ThemeMode.system,
                     onTap: () => themeService.setThemeMode(ThemeMode.system),
@@ -493,7 +539,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             // Bank & E-Wallet Notification Whitelist Settings
             Text(
-              'SUMBER NOTIFIKASI AKTIF',
+              lang.tr('notify_sources'),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -513,7 +559,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Pilih bank & e-wallet yang diizinkan untuk dibaca dan disinkronkan otomatis oleh Reconx:',
+                    lang.tr('notify_sources_desc'),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       color: AppTheme.getTextSecondary(context),
@@ -536,9 +582,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 24),
 
-            // Security & Biometric Section
+            // Enterprise Security & Biometric Section
             Text(
-              'KEAMANAN APLIKASI',
+              lang.tr('security_title'),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -575,7 +621,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Kunci Sidik Jari / Biometrik',
+                              lang.tr('fingerprint'),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -584,7 +630,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Minta verifikasi biometrik setiap kali aplikasi dibuka.',
+                              lang.tr('fingerprint_desc'),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 color: AppTheme.getTextSecondary(context),
@@ -615,7 +661,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             // Notification Interceptor Permission Status
             Text(
-              'STATUS NOTIFICATION INTERCEPTOR',
+              lang.tr('interceptor_title'),
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -646,7 +692,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              syncService.hasPermission ? 'Akses Notifikasi Aktif' : 'Izin Notifikasi Belum Aktif',
+                              syncService.hasPermission ? lang.tr('interceptor_active') : lang.tr('interceptor_inactive'),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -691,7 +737,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: _showResetConfirmDialog,
               icon: const Icon(Icons.delete_sweep_rounded, color: AppTheme.dangerRose),
               label: Text(
-                'Reset Seluruh Data Mutasi Lokal',
+                lang.tr('reset_data'),
                 style: GoogleFonts.plusJakartaSans(
                   color: AppTheme.dangerRose,
                   fontWeight: FontWeight.bold,
@@ -711,7 +757,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: _handleSignOut,
               icon: const Icon(Icons.logout_rounded, color: Colors.white),
               label: Text(
-                'Keluar dari Akun (Logout)',
+                lang.tr('logout'),
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.w800,
                   fontSize: 14,
@@ -728,6 +774,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: 20),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOptionItem({
+    required String title,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.primaryEmerald.withOpacity(0.15) : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? AppTheme.primaryEmerald : Colors.transparent,
+              width: 1.5,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              title,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? AppTheme.primaryEmerald : AppTheme.getTextSecondary(context),
+              ),
+            ),
+          ),
         ),
       ),
     );

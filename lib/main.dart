@@ -7,6 +7,7 @@ import 'screens/main_navigation_screen.dart';
 import 'services/api_sync_service.dart';
 import 'services/auth_service.dart';
 import 'services/biometric_service.dart';
+import 'services/language_service.dart';
 import 'services/theme_service.dart';
 import 'theme/app_theme.dart';
 
@@ -53,6 +54,7 @@ void main() async {
     );
   };
 
+  await LanguageService().init();
   await ThemeService().init();
   await AuthService().init();
   await BiometricService().init();
@@ -67,7 +69,7 @@ class ReconxApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([AuthService(), ThemeService()]),
+      listenable: Listenable.merge([AuthService(), ThemeService(), LanguageService()]),
       builder: (context, _) {
         final authService = AuthService();
         final bioService = BiometricService();

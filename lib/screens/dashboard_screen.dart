@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../services/api_sync_service.dart';
 import '../services/auth_service.dart';
+import '../services/language_service.dart';
 import '../services/theme_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_badge.dart';
@@ -18,6 +19,8 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  bool _isBalanceMasked = false;
+
   NumberFormat get currencyFormat {
     try {
       return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
@@ -44,9 +47,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final user = AuthService().currentUser;
     final isDark = AppTheme.isDark(context);
     final themeService = ThemeService();
+    final lang = LanguageService();
 
     return ListenableBuilder(
-      listenable: ApiSyncService(),
+      listenable: Listenable.merge([ApiSyncService(), LanguageService()]),
       builder: (context, _) {
         final syncService = ApiSyncService();
 
@@ -71,7 +75,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Reconx',
+                      lang.tr('app_title'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
@@ -79,7 +83,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                     Text(
-                      user?.email.isNotEmpty == true ? user!.email : 'Online Sync Engine',
+                      user?.email.isNotEmpty == true ? user!.email : 'Enterprise Sync Engine',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         color: AppTheme.getTextSecondary(context),
@@ -90,6 +94,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
             actions: [
+              IconButton(
+                icon: Icon(
+                  _isBalanceMasked ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                  color: AppTheme.getTextSecondary(context),
+                ),
+                tooltip: _isBalanceMasked ? 'Tampilkan Saldo' : 'Sembunyikan Saldo (Privacy)',
+                onPressed: () => setState(() => _isBalanceMasked = !_isBalanceMasked),
+              ),
               IconButton(
                 icon: Icon(
                   themeService.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
@@ -150,18 +162,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           children: [
                             Text(
                               syncService.isServiceActive
-                                  ? 'Background Sync: ACTIVE'
-                                  : 'Background Sync: PAUSED',
+                                  ? lang.tr('status_active')
+                                  : lang.tr('status_paused'),
                               style: GoogleFonts.plusJakartaSans(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                                 color: syncService.isServiceActive
-                                  ? AppTheme.primaryEmerald
-                                  : Colors.amber,
+                                    ? AppTheme.primaryEmerald
+                                    : Colors.amber,
                               ),
                             ),
                             Text(
-                              'Memonitor mutasi bank, e-wallet, & nota fisik',
+                              lang.tr('status_desc'),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 color: AppTheme.getTextSecondary(context),
@@ -181,31 +193,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                 const SizedBox(height: 16),
 
-                // Metrics Row
+                // Metrics Row (With Privacy Eye Toggle)
                 Row(
                   children: [
                     Expanded(
+                      flex: 4,
                       child: _buildMetricCard(
                         context,
-                        'Total Terdata',
-                        currencyFormat.format(syncService.syncedVolumeToday),
+                        lang.tr('total_tracked'),
+                        _isBalanceMasked ? '••••••••' : currencyFormat.format(syncService.syncedVolumeToday),
                         Icons.payments_outlined,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
+                      flex: 3,
                       child: _buildMetricCard(
                         context,
-                        'Transaksi',
+                        lang.tr('transactions'),
                         '${syncService.syncedCountToday} Trx',
                         Icons.sync_alt_rounded,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
+                      flex: 3,
                       child: _buildMetricCard(
                         context,
-                        'Latency',
+                        lang.tr('latency'),
                         '${syncService.latencyMs}ms',
                         Icons.speed_rounded,
                       ),
@@ -213,92 +228,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
-                // Quick Action Cards
-                Row(
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => widget.onNavigateTab?.call(2), // Scan Nota Tab
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: AppTheme.getCard(context),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppTheme.primaryEmerald.withOpacity(0.4)),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primaryEmerald.withOpacity(0.15),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.qr_code_scanner_rounded, size: 20, color: AppTheme.primaryEmerald),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Pindai QRIS & Nota',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.getTextPrimary(context),
-                                  ),
-                                ),
-                              ),
-                            ],
+                // Enterprise Security & Double-Counting Guard Tag
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.getCard(context),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppTheme.getBorder(context)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.verified_user_rounded, color: AppTheme.primaryEmerald, size: 18),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Enkripsi 256-bit TLS • Anti-Double Counting Aktif',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.getTextSecondary(context),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => widget.onNavigateTab?.call(1), // Mutasi Tab
-                        child: Container(
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: AppTheme.getCard(context),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppTheme.getBorder(context)),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primaryCyan.withOpacity(0.15),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.receipt_long_rounded, size: 20, color: AppTheme.primaryCyan),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  'Lihat Mutasi',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.getTextPrimary(context),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
 
                 const SizedBox(height: 24),
 
                 // Monitored Apps Grid with Brand Badges
                 Text(
-                  'APLIKASI & BANK TERPANTAU',
+                  lang.tr('monitored_apps'),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -357,7 +319,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'MUTASI TERBARU',
+                      lang.tr('recent_mutasi'),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
@@ -368,7 +330,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     GestureDetector(
                       onTap: () => widget.onNavigateTab?.call(1), // Mutasi Tab
                       child: Text(
-                        'Lihat Semua (${syncService.history.length})',
+                        '${lang.tr('view_all')} (${syncService.history.length})',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           color: AppTheme.primaryEmerald,
@@ -395,7 +357,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Icon(Icons.inbox_rounded, size: 38, color: AppTheme.getTextSecondary(context).withOpacity(0.5)),
                         const SizedBox(height: 10),
                         Text(
-                          'Belum Ada Mutasi Hari Ini',
+                          lang.tr('no_mutasi_today'),
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
@@ -404,7 +366,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Notifikasi dari bank atau scan struk fisik akan otomatis masuk dan terekonsiliasi.',
+                          lang.tr('no_mutasi_desc'),
                           textAlign: TextAlign.center,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
@@ -461,7 +423,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             ),
                             const SizedBox(width: 10),
                             Text(
-                              currencyFormat.format(item.amount),
+                              _isBalanceMasked ? '••••••' : currencyFormat.format(item.amount),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,

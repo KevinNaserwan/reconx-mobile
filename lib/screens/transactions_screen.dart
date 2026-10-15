@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 import '../models/transaction_item.dart';
 import '../services/api_sync_service.dart';
+import '../services/language_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_badge.dart';
 
@@ -48,6 +50,57 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   void dispose() {
     _searchController.dispose();
     super.dispose();
+  }
+
+  void _handleExportCSV(List<SyncedTransaction> list) {
+    if (list.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Belum ada transaksi untuk di-export.')),
+      );
+      return;
+    }
+
+    final buffer = StringBuffer();
+    buffer.writeln('ID,Waktu,Merchant,Aplikasi,Kanal,Nominal,Status');
+    for (final tx in list) {
+      buffer.writeln('"${tx.id}","${dateFormat.format(tx.timestamp)}","${tx.merchant}","${tx.appName}","${tx.channel}",${tx.amount},"${tx.status}"');
+    }
+
+    Clipboard.setData(ClipboardData(text: buffer.toString()));
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.getCard(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(
+          'Rekap Mutasi CSV Disalin',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            color: AppTheme.getTextPrimary(context),
+          ),
+        ),
+        content: Text(
+          'Sebanyak ${list.length} baris data mutasi finansial keluarga berhasil diformat ke CSV dan disalin ke clipboard HP Anda. Anda dapat langsung paste ke Excel, Google Sheets, atau WhatsApp.',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13,
+            color: AppTheme.getTextSecondary(context),
+          ),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryEmerald,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showTransactionDetails(SyncedTransaction tx) {
@@ -203,7 +256,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         backgroundColor: AppTheme.getCard(context),
         elevation: 0,
         title: Text(
-          'Mutasi Finansial Terdata',
+          LanguageService().tr('nav_mutasi'),
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w800,
@@ -212,8 +265,13 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         ),
         actions: [
           IconButton(
+            icon: Icon(Icons.file_download_outlined, color: AppTheme.getTextSecondary(context)),
+            tooltip: LanguageService().tr('export_csv'),
+            onPressed: () => _handleExportCSV(ApiSyncService().history),
+          ),
+          IconButton(
             icon: const Icon(Icons.qr_code_scanner_rounded, color: AppTheme.primaryEmerald),
-            tooltip: 'Pindai QRIS & Nota',
+            tooltip: LanguageService().tr('scan_title'),
             onPressed: widget.onNavigateToScan,
           ),
         ],

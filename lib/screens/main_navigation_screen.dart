@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/language_service.dart';
 import '../services/permission_service.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_screen.dart';
@@ -84,11 +85,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(0, Icons.grid_view_rounded, 'Beranda'),
-                _buildNavItem(1, Icons.receipt_long_rounded, 'Mutasi'),
+                _buildNavItem(0, Icons.grid_view_rounded, LanguageService().tr('nav_home')),
+                _buildNavItem(1, Icons.receipt_long_rounded, LanguageService().tr('nav_mutasi')),
                 _buildCenterScanButton(),
-                _buildNavItem(3, Icons.family_restroom_rounded, 'Keluarga'),
-                _buildNavItem(4, Icons.person_rounded, 'Akun'),
+                _buildNavItem(3, Icons.family_restroom_rounded, LanguageService().tr('nav_family')),
+                _buildNavItem(4, Icons.person_rounded, LanguageService().tr('nav_account')),
               ],
             ),
           ),

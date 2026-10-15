@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../services/api_sync_service.dart';
+import '../services/language_service.dart';
 import '../services/permission_service.dart';
 import '../services/receipt_scanner_service.dart';
 import '../theme/app_theme.dart';
@@ -289,7 +290,7 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
                     ),
                   ),
                   Text(
-                    'Pindai QRIS & Nota Fisik',
+                    LanguageService().tr('scan_title'),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -333,7 +334,7 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
                     border: Border.all(color: Colors.white12),
                   ),
                   child: Text(
-                    'Arahkan kamera ke struk kasir atau QRIS',
+                    LanguageService().tr('scan_hint'),
                     textAlign: TextAlign.center,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
@@ -375,7 +376,7 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
                           ),
                           const SizedBox(height: 6),
                           Text(
-                            'Galeri',
+                            LanguageService().tr('gallery'),
                             style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white70),
                           ),
                         ],

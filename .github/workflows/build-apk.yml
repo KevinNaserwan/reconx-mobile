@@ -114,6 +114,7 @@ jobs:
           fi
           echo "Found APK: $APK_FILE"
           mkdir -p dist
+          cp "$APK_FILE" dist/Reconx-v1.3.1.apk
           cp "$APK_FILE" dist/Reconx-v1.3.0.apk
           cp "$APK_FILE" dist/Reconx-v1.2.0.apk
           cp "$APK_FILE" dist/ReconX-Companion-v1.1.0.apk
@@ -122,38 +123,40 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Reconx-v1.3.0-APK
-          path: dist/Reconx-v1.3.0.apk
+          name: Reconx-v1.3.1-APK
+          path: dist/Reconx-v1.3.1.apk
           retention-days: 30
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.3.0
-          name: "Reconx Android v1.3.0"
+          tag_name: v1.3.1
+          name: "Reconx Android v1.3.1 (Enterprise Ready)"
           draft: false
           prerelease: false
           overwrite: true
           body: |
-            ### Reconx Android v1.3.0 Release
+            ### Reconx Android v1.3.1 Enterprise Release
             
-            Pembaruan besar antarmuka (UI/UX) dan fitur personalisasi aplikasi Android **Reconx**:
+            Pembaruan besar antarmuka (UI/UX), arsitektur keamanan, dan fitur enterprise aplikasi Android **Reconx**:
             
+            - 🌐 **Multilingual Language Support:** Pilihan 3 bahasa resmi: **Bahasa Indonesia (ID)**, **English (EN)**, dan **Chinese (ZH - 中文)**.
+            - 👁️ **Enterprise Privacy Balance Masking:** Mode privasi sensor nominal saldo (ikon mata 👁️) untuk keamanan di tempat umum.
             - 🌓 **White & Dark Mode:** Dukungan tema Terang (White) dan Gelap (Dark) yang fleksibel dengan toggle instan.
             - 🏷️ **Custom Brand Badges:** Icon transaksi bervariasi dengan visual brand resmi (QRIS, GoPay, OVO, DANA, ShopeePay, BCA, Mandiri, BRI, SeaBank, dll.) menggantikan centang generic.
+            - 📊 **CSV Export & Audit Trail:** Kemampuan ekspor seluruh mutasi finansial keluarga ke format CSV langsung disalin ke clipboard untuk Excel / Google Sheets.
             - 🔔 **Filter Notifikasi Bank & E-Wallet:** Kontrol penuh untuk memilih sumber aplikasi finansial mana saja yang diizinkan untuk dibaca dan disinkronkan.
             - 📷 **Viewfinder Scanner Ala GoPay:** Antarmuka scanner in-app modern dengan animasi laser scanning, glowing corner brackets, dan kontrol senter/galeri.
             - 🎟️ **Voucher PIN Undangan Rapi:** Kartu PIN keluarga yang lebih rapi, elegan, dan mudah disalin untuk menghubungkan akun pasangan.
             - 👤 **Lengkapi Data Profil:** Dialog pengaturan data pribadi (Nama, Email, WhatsApp, Peran Finansial Keluarga).
-            - 🚪 **Tombol Logout Merah & Pembersihan:** Tombol keluar beraksen merah tegas dan penghapusan tombol tes server teknis.
+            - 🚪 **Tombol Logout Merah & Pembersihan:** Tombol keluar beraksen merah tegas dan pembersihan tombol redundant di beranda.
             - 🛡️ **Persistent Keystore:** Kunci sertifikat resmi permanen untuk update mulus tanpa bentrok paket.
             
             #### 📥 Download Langsung:
-            Download file **`Reconx-v1.3.0.apk`** di bawah ini dan install langsung di HP Android Anda.
+            Download file **`Reconx-v1.3.1.apk`** di bawah ini dan install langsung di HP Android Anda.
           files: |
+            dist/Reconx-v1.3.1.apk
             dist/Reconx-v1.3.0.apk
-            dist/Reconx-v1.2.0.apk
-            dist/ReconX-Companion-v1.1.0.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
