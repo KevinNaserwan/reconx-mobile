@@ -201,11 +201,38 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
       return;
     }
 
-    // Run intelligent Indonesian OCR parser
-    final result = ReceiptScannerService().parseReceiptImage(photoPath);
+    // Run intelligent Indonesian MLKit OCR parser
+    final result = await ReceiptScannerService().parseReceiptImage(photoPath);
+
+    if (result == null) {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: AppTheme.dangerRose,
+            content: Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Nota tidak terdeteksi. Kamera tidak menemukan teks struk kasir atau bukti pembayaran. Pastikan foto jelas dan tidak buram.',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+      return;
+    }
 
     _merchantController.text = result.merchant;
-    _amountController.text = result.amount.toInt().toString();
+    _amountController.text = result.amount > 0 ? result.amount.toInt().toString() : '';
     _selectedMethod = result.paymentMethod;
     if (!_paymentMethods.contains(_selectedMethod)) {
       _paymentMethods.insert(0, _selectedMethod);

@@ -114,6 +114,7 @@ jobs:
           fi
           echo "Found APK: $APK_FILE"
           mkdir -p dist
+          cp "$APK_FILE" dist/Reconx-v1.3.4.apk
           cp "$APK_FILE" dist/Reconx-v1.3.3.apk
           cp "$APK_FILE" dist/Reconx-v1.3.2.apk
           cp "$APK_FILE" dist/Reconx-v1.3.1.apk
@@ -125,33 +126,34 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Reconx-v1.3.3-APK
-          path: dist/Reconx-v1.3.3.apk
+          name: Reconx-v1.3.4-APK
+          path: dist/Reconx-v1.3.4.apk
           retention-days: 30
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.3.3
-          name: "Reconx Android v1.3.3 (In-App Live Camera & Kevin-Anan Couple Tracking)"
+          tag_name: v1.3.4
+          name: "Reconx Android v1.3.4 (Real MLKit OCR, Flagship Slide, & Official SVGs)"
           draft: false
           prerelease: false
           overwrite: true
           body: |
-            ### Reconx Android v1.3.3 Official Release
+            ### Reconx Android v1.3.4 Official Release
 
-            Pembaruan fitur & penyempurnaan UI/UX menyeluruh:
+            Pembaruan fitur mutakhir & penyempurnaan UI/UX:
 
-            - 📷 **In-App Live Viewfinder & Shutter:** Kamera scanner nota kini terintegrasi langsung di dalam aplikasi (*in-app camera feed*). Mengetuk tombol shutter langsung mengambil foto seketika tanpa membuka aplikasi kamera sistem eksternal dan tanpa layar gelap (*no blank black box*).
-            - 🏷️ **Authentic Corporate Brand Badges:** Seluruh badge bank & dompet digital (BCA, Mandiri, BRI, BNI, SeaBank, Superbank, GoPay, OVO, DANA, ShopeePay, QRIS) kini menggunakan vektor resmi presisi tinggi dengan warna korporat asli tanpa teks bertumpuk di dalam badge icon.
-            - 👫 **Kevin & Anan (Couple Mode):** Data cluster telah direset ke tracking keuangan pasangan (pacaran / pre-marital) dengan anti-double counting khusus transfer antara Kevin dan Anan.
-            - 🖼️ **Google Account Profile Avatar:** Foto profil Google login kini otomatis ditampilkan di Header Beranda, Kartu Profil Akun, dan Anggota Pasangan, lengkap dengan opsi pengaturan URL foto profil custom.
-            - ⏩ **Slide to Confirm & Celebration Dialog:** Transisi mulus geser konfirmasi mutasi nota (*drag-to-pay style*) dan dialog sukses pop-up.
+            - 🔍 **Real On-Device Google ML Kit OCR Engine:** Tidak lagi menggunakan data dummy simulasi. Teks nota kasir dibaca secara nyata dari foto struk belanja. Jika pengguna memotret sembarang objek (lantai/meja/dinding tanpa teks/nominal struk), aplikasi menolak secara ketat dengan pesan edukatif tanpa membuat mutasi palsu.
+            - ✨ **Redesigned Luxury Slide-to-Confirm:** Komponen "Geser untuk Simpan Mutasi" dipercantik dengan tampilan obsidian glassmorphism, animated glowing chevrons (`» » »`), track progress hijau zamrud dinamis, jewel slider knob berkilau, dan respons getar haptik magnetik kelas enterprise (GoPay / Apple Pay standard).
+            - 🏷️ **Authentic Corporate Brand Vector Marks:** Logo ShopeePay, OVO, GoPay, DANA, BCA, Mandiri, BRI, BNI, SeaBank, Superbank, dan QRIS menggunakan file vektor SVG resmi resolusi tinggi tanpa teks bertumpuk di dalam badge icon.
+            - 👫 **Fresh Couple Cluster Reset:** Pembersihan data mutasi lokal dan sinkronisasi cluster Kevin & Anan (Couple Mode).
+            - 🖼️ **Google Avatar Profile Integration:** Sinkronisasi foto profil Google real-time di Dashboard, Anggota Pasangan, dan Menu Akun.
 
             #### 📥 Download Langsung:
-            Download file **`Reconx-v1.3.3.apk`** di bawah ini dan install langsung di HP Android Anda.
+            Download file **`Reconx-v1.3.4.apk`** di bawah ini dan pasang langsung di HP Android Anda.
           files: |
+            dist/Reconx-v1.3.4.apk
             dist/Reconx-v1.3.3.apk
             dist/Reconx-v1.3.2.apk
             dist/Reconx-v1.3.1.apk

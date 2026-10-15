@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class BrandBadgeData {
   final String label;
@@ -24,7 +25,7 @@ class BrandBadgeHelper {
         label: 'QRIS',
         bgColor: const Color(0xFFED1C24),
         borderColor: const Color(0xFFB91C1C),
-        logoWidget: _buildQrisMark(size),
+        logoWidget: SvgPicture.asset('assets/logos/qris.svg', width: size, height: size),
       );
     }
 
@@ -34,7 +35,7 @@ class BrandBadgeHelper {
         label: 'GoPay',
         bgColor: const Color(0xFF00AED6),
         borderColor: const Color(0xFF0284C7),
-        logoWidget: _buildGoPayMark(size),
+        logoWidget: SvgPicture.asset('assets/logos/gopay.svg', width: size, height: size),
       );
     }
 
@@ -44,7 +45,7 @@ class BrandBadgeHelper {
         label: 'OVO',
         bgColor: const Color(0xFF4C2A86),
         borderColor: const Color(0xFF3B1D6D),
-        logoWidget: _buildOvoMark(size),
+        logoWidget: SvgPicture.asset('assets/logos/ovo.svg', width: size, height: size),
       );
     }
 
@@ -54,7 +55,7 @@ class BrandBadgeHelper {
         label: 'DANA',
         bgColor: const Color(0xFF118EEA),
         borderColor: const Color(0xFF0D72BC),
-        logoWidget: _buildDanaMark(size),
+        logoWidget: SvgPicture.asset('assets/logos/dana.svg', width: size, height: size),
       );
     }
 
@@ -64,7 +65,7 @@ class BrandBadgeHelper {
         label: 'ShopeePay',
         bgColor: const Color(0xFFEE4D2D),
         borderColor: const Color(0xFFC2381E),
-        logoWidget: _buildShopeePayMark(size),
+        logoWidget: SvgPicture.asset('assets/logos/shopeepay.svg', width: size, height: size),
       );
     }
 
@@ -74,17 +75,17 @@ class BrandBadgeHelper {
         label: 'BCA',
         bgColor: const Color(0xFF005EAD),
         borderColor: const Color(0xFF00407A),
-        logoWidget: _buildBcaMark(size),
+        logoWidget: SvgPicture.asset('assets/logos/bca.svg', width: size, height: size),
       );
     }
 
-    // 7. Mandiri / Livin (Official Deep Navy #002D62 & Golden Ribbon #F5B800)
+    // 7. Mandiri / Livin (Official Deep Navy #002D62 & Golden Ribbon)
     if (text.contains('mandiri') || text.contains('livin')) {
       return BrandBadgeData(
         label: 'Mandiri',
         bgColor: const Color(0xFF002D62),
         borderColor: const Color(0xFF001B3B),
-        logoWidget: _buildMandiriMark(size),
+        logoWidget: SvgPicture.asset('assets/logos/mandiri.svg', width: size, height: size),
       );
     }
 
@@ -94,7 +95,7 @@ class BrandBadgeHelper {
         label: 'BRImo',
         bgColor: const Color(0xFF00529C),
         borderColor: const Color(0xFF00386C),
-        logoWidget: _buildBriMark(size),
+        logoWidget: SvgPicture.asset('assets/logos/bri.svg', width: size, height: size),
       );
     }
 
@@ -104,7 +105,7 @@ class BrandBadgeHelper {
         label: 'BNI',
         bgColor: const Color(0xFF005E6A),
         borderColor: const Color(0xFF00444D),
-        logoWidget: _buildBniMark(size),
+        logoWidget: SvgPicture.asset('assets/logos/bni.svg', width: size, height: size),
       );
     }
 
@@ -114,17 +115,17 @@ class BrandBadgeHelper {
         label: 'SeaBank',
         bgColor: const Color(0xFFFF5722),
         borderColor: const Color(0xFFD84315),
-        logoWidget: _buildSeaBankMark(size),
+        logoWidget: SvgPicture.asset('assets/logos/seabank.svg', width: size, height: size),
       );
     }
 
-    // 11. Superbank (Official Rich Violet #7F00FF & Lime Accent)
+    // 11. Superbank (Official Rich Violet #7F00FF & Lime Star)
     if (text.contains('superbank')) {
       return BrandBadgeData(
         label: 'Superbank',
         bgColor: const Color(0xFF7F00FF),
         borderColor: const Color(0xFF6200EA),
-        logoWidget: _buildSuperbankMark(size),
+        logoWidget: SvgPicture.asset('assets/logos/superbank.svg', width: size, height: size),
       );
     }
 
@@ -134,7 +135,7 @@ class BrandBadgeHelper {
         label: 'Nota Kasir',
         bgColor: const Color(0xFF1E293B),
         borderColor: const Color(0xFF334155),
-        logoWidget: Icon(Icons.receipt_long_rounded, color: const Color(0xFF10B981), size: size * 0.52),
+        logoWidget: Icon(Icons.receipt_long_rounded, color: const Color(0xFF10B981), size: size * 0.55),
       );
     }
 
@@ -144,7 +145,7 @@ class BrandBadgeHelper {
         label: 'Tunai',
         bgColor: const Color(0xFF059669),
         borderColor: const Color(0xFF047857),
-        logoWidget: Icon(Icons.payments_rounded, color: Colors.white, size: size * 0.52),
+        logoWidget: Icon(Icons.payments_rounded, color: Colors.white, size: size * 0.55),
       );
     }
 
@@ -153,7 +154,7 @@ class BrandBadgeHelper {
       label: 'Bank / E-Wallet',
       bgColor: const Color(0xFF334155),
       borderColor: const Color(0xFF475569),
-      logoWidget: Icon(Icons.account_balance_rounded, color: Colors.white, size: size * 0.52),
+      logoWidget: Icon(Icons.account_balance_rounded, color: Colors.white, size: size * 0.55),
     );
   }
 
@@ -169,7 +170,7 @@ class BrandBadgeHelper {
       height: size,
       decoration: BoxDecoration(
         color: badge.bgColor,
-        borderRadius: BorderRadius.circular(size * 0.28),
+        borderRadius: BorderRadius.circular(size * 0.26),
         border: Border.all(color: badge.borderColor, width: 1.2),
         boxShadow: [
           BoxShadow(
@@ -179,6 +180,7 @@ class BrandBadgeHelper {
           ),
         ],
       ),
+      clipBehavior: Clip.antiAlias,
       child: Center(
         child: badge.logoWidget,
       ),
