@@ -114,49 +114,46 @@ jobs:
           fi
           echo "Found APK: $APK_FILE"
           mkdir -p dist
+          cp "$APK_FILE" dist/Reconx-v1.3.5.apk
           cp "$APK_FILE" dist/Reconx-v1.3.4.apk
           cp "$APK_FILE" dist/Reconx-v1.3.3.apk
           cp "$APK_FILE" dist/Reconx-v1.3.2.apk
           cp "$APK_FILE" dist/Reconx-v1.3.1.apk
           cp "$APK_FILE" dist/Reconx-v1.3.0.apk
-          cp "$APK_FILE" dist/Reconx-v1.2.0.apk
-          cp "$APK_FILE" dist/ReconX-Companion-v1.1.0.apk
           ls -lh dist/
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Reconx-v1.3.4-APK
-          path: dist/Reconx-v1.3.4.apk
+          name: Reconx-v1.3.5-APK
+          path: dist/Reconx-v1.3.5.apk
           retention-days: 30
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.3.4
-          name: "Reconx Android v1.3.4 (Real MLKit OCR, Flagship Slide, & Official SVGs)"
+          tag_name: v1.3.5
+          name: "Reconx Android v1.3.5 (blu BCA & Banking Notification Interceptor Fix)"
           draft: false
           prerelease: false
           overwrite: true
           body: |
-            ### Reconx Android v1.3.4 Official Release
+            ### Reconx Android v1.3.5 Official Release
 
-            Pembaruan fitur mutakhir & penyempurnaan UI/UX:
+            Perbaikan mutakhir untuk intersepsi otomatis notifikasi perbankan & QRIS:
 
-            - 🔍 **Real On-Device Google ML Kit OCR Engine:** Tidak lagi menggunakan data dummy simulasi. Teks nota kasir dibaca secara nyata dari foto struk belanja. Jika pengguna memotret sembarang objek (lantai/meja/dinding tanpa teks/nominal struk), aplikasi menolak secara ketat dengan pesan edukatif tanpa membuat mutasi palsu.
-            - ✨ **Redesigned Luxury Slide-to-Confirm:** Komponen "Geser untuk Simpan Mutasi" dipercantik dengan tampilan obsidian glassmorphism, animated glowing chevrons (`» » »`), track progress hijau zamrud dinamis, jewel slider knob berkilau, dan respons getar haptik magnetik kelas enterprise (GoPay / Apple Pay standard).
-            - 🏷️ **Authentic Corporate Brand Vector Marks:** Logo ShopeePay, OVO, GoPay, DANA, BCA, Mandiri, BRI, BNI, SeaBank, Superbank, dan QRIS menggunakan file vektor SVG resmi resolusi tinggi tanpa teks bertumpuk di dalam badge icon.
-            - 👫 **Fresh Couple Cluster Reset:** Pembersihan data mutasi lokal dan sinkronisasi cluster Kevin & Anan (Couple Mode).
-            - 🖼️ **Google Avatar Profile Integration:** Sinkronisasi foto profil Google real-time di Dashboard, Anggota Pasangan, dan Menu Akun.
+            - ⚡ **Full Support blu by BCA Digital (`com.bcadigital.blu`):** Memperbaiki deteksi package name resmi blu BCA serta varian sub-packages terkait.
+            - 📩 **Android BigTextStyle & Expanded Text Extractor:** Membaca data lengkap notifikasi perbankan (termasuk `EXTRA_BIG_TEXT`, `EXTRA_TEXT_LINES`, dan `EXTRA_TITLE_BIG`) sehingga nominal dan nama merchant pada transaksi QRIS tidak terpotong atau hilang.
+            - 🛡️ **Actionable Permission Status & Panduan Android 13/14+:** Menambahkan banner peringatan langsung di Dashboard jika Akses Notifikasi Android belum aktif atau terblokir "Setelan Dibatasi" (*Restricted Settings*), lengkap dengan tombol pintas ke setelan sistem HP.
+            - 💰 **Indonesian Currency Regex Upgrade:** Parser teks sisi client dan server diperkuat untuk membaca format variatif nominal pembayaran (`Rp 25.000`, `Rp25.000,00`, `IDR 50.000`, dll) secara presisi.
 
             #### 📥 Download Langsung:
-            Download file **`Reconx-v1.3.4.apk`** di bawah ini dan pasang langsung di HP Android Anda.
+            Download file **`Reconx-v1.3.5.apk`** di bawah ini dan pasang langsung di HP Android Anda.
           files: |
+            dist/Reconx-v1.3.5.apk
             dist/Reconx-v1.3.4.apk
             dist/Reconx-v1.3.3.apk
             dist/Reconx-v1.3.2.apk
-            dist/Reconx-v1.3.1.apk
-            dist/Reconx-v1.3.0.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

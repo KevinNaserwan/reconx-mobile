@@ -37,12 +37,13 @@ class SyncedTransaction {
       };
 
   factory SyncedTransaction.fromJson(Map<String, dynamic> json) {
+    final rawNotif = json['rawNotification'] is Map ? json['rawNotification'] as Map : null;
     return SyncedTransaction(
-      id: json['id'] ?? json['transactionRef'] ?? 'TRX-UNKNOWN',
-      appName: json['appName'] ?? json['providerName'] ?? json['app'] ?? 'Bank / Wallet',
+      id: json['id'] ?? json['transactionRef'] ?? json['transactionId'] ?? 'TRX-UNKNOWN',
+      appName: json['appName'] ?? json['providerName'] ?? json['app'] ?? (rawNotif?['app']) ?? 'Bank / Wallet',
       packageName: json['packageName'] ?? '',
-      title: json['title'] ?? 'Pembayaran Berhasil',
-      content: json['content'] ?? '',
+      title: json['title'] ?? (rawNotif?['title']) ?? 'Pembayaran Berhasil',
+      content: json['content'] ?? (rawNotif?['content']) ?? '',
       amount: (json['amount'] ?? json['parsedAmount'] ?? 0).toDouble(),
       merchant: json['merchant'] ?? 'Merchant Partner',
       channel: json['channel'] ?? 'MOBILE_AUTO_SYNC',

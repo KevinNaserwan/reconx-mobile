@@ -379,19 +379,36 @@ class ApiSyncService extends ChangeNotifier {
   }
 
   double _extractAmountClientSide(String text) {
-    final reg = RegExp(r'(?:Rp|IDR)\s*([0-9\.\,]+)', caseSensitive: false);
+    // 1. Try explicit Rp / IDR pattern (e.g. "Rp 25.000", "Rp25.000", "IDR 150.000,00")
+    final reg = RegExp(r'(?:Rp|IDR)\s*([0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})?|[0-9]+)', caseSensitive: false);
     final match = reg.firstMatch(text);
     if (match != null) {
-      final clean = match.group(1)!.replaceAll('.', '').replaceAll(',', '.');
-      return double.tryParse(clean) ?? 50000.0;
+      final raw = match.group(1)!;
+      final cleaned = raw.replaceAll(RegExp(r'[^0-9]'), '');
+      final val = double.tryParse(cleaned);
+      if (val != null && val > 0) return val;
     }
-    return 50000.0;
+
+    // 2. Generic thousands pattern (e.g. "25.000", "150.000")
+    final numReg = RegExp(r'([0-9]{1,3}(?:[.,][0-9]{3})+)', caseSensitive: false);
+    final numMatch = numReg.firstMatch(text);
+    if (numMatch != null) {
+      final cleaned = numMatch.group(1)!.replaceAll(RegExp(r'[^0-9]'), '');
+      final val = double.tryParse(cleaned);
+      if (val != null && val > 0) return val;
+    }
+
+    return 0.0;
   }
 
   String _extractMerchantClientSide(String text) {
-    final reg = RegExp(r'(?:ke|di|merchant)\s+([A-Za-z0-9\s]{3,20})', caseSensitive: false);
+    final reg = RegExp(r'(?:ke|di|merchant|pada|toko)\s+([A-Za-z0-9\s\.\-]{3,30})', caseSensitive: false);
     final match = reg.firstMatch(text);
-    if (match != null) return match.group(1)!.trim();
-    return 'Merchant Partner';
+    if (match != null) {
+      final candidate = match.group(1)!.trim();
+      final cleaned = candidate.split(RegExp(r'(?:berhasil|sukses|pada|sebesar|rp|idr)', caseSensitive: false)).first.trim();
+      if (cleaned.isNotEmpty && cleaned.length >= 2) return cleaned;
+    }
+    return 'Merchant QRIS';
   }
 }

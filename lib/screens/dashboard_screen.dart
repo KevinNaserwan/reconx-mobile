@@ -20,8 +20,28 @@ class DashboardScreen extends StatefulWidget {
   State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingObserver {
   bool _isBalanceMasked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    ApiSyncService().checkPermission();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ApiSyncService().checkPermission();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
   NumberFormat get currencyFormat {
     try {
@@ -165,6 +185,79 @@ class _DashboardScreenState extends State<DashboardScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 0. Notification Permission Warning (Actionable)
+                if (!syncService.hasPermission) ...[
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444).withOpacity(isDark ? 0.15 : 0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFEF4444).withOpacity(0.4),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.warning_amber_rounded, color: Color(0xFFEF4444), size: 22),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Akses Notifikasi Android Belum Aktif',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                  color: const Color(0xFFEF4444),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Agar notifikasi pembayaran QRIS (blu BCA, BCA, Mandiri, dll) dapat otomatis tercatat ke pembukuan, izin Akses Notifikasi wajib diaktifkan.',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            height: 1.4,
+                            color: AppTheme.getTextSecondary(context),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => syncService.openPermissionSettings(),
+                                icon: const Icon(Icons.security_update_good_rounded, size: 16),
+                                label: const Text(
+                                  'Aktifkan Izin Notifikasi',
+                                  style: TextStyle(fontWeight: FontWeight.w700),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primaryEmerald,
+                                  foregroundColor: Colors.black,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              onPressed: () => _showRestrictedSettingsGuide(context),
+                              icon: const Icon(Icons.help_outline_rounded, color: Colors.amber),
+                              tooltip: 'Panduan Android 13/14 (Setelan Dibatasi)',
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 // Service Active Banner
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -504,6 +597,98 @@ class _DashboardScreenState extends State<DashboardScreen> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 10,
               color: AppTheme.getTextSecondary(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRestrictedSettingsGuide(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.getCard(context),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.info_outline_rounded, color: AppTheme.primaryEmerald, size: 24),
+                const SizedBox(width: 10),
+                Text(
+                  'Panduan Akses Notifikasi Android',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.getTextPrimary(context),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Pada Android 13, 14, dan 15, fitur keamanan OS sering menampilkan pesan "Setelan Dibatasi" (Restricted Settings) saat mengaktifkan Akses Notifikasi.',
+              style: GoogleFonts.plusJakartaSans(fontSize: 13, height: 1.4, color: AppTheme.getTextSecondary(context)),
+            ),
+            const SizedBox(height: 14),
+            _buildGuideStep('1', 'Tutup aplikasi, lalu TAHAN ikon Reconx di home screen HP Anda.'),
+            _buildGuideStep('2', 'Pilih menu "Info Aplikasi" (Ikon tanda seru ⓘ).'),
+            _buildGuideStep('3', 'Tekan tombol Titik 3 di pojok kanan atas layar.'),
+            _buildGuideStep('4', 'Pilih "Izinkan setelan terbatas" (Allow restricted settings).'),
+            _buildGuideStep('5', 'Buka kembali Reconx > tekan "Aktifkan Izin Notifikasi" dan nyalakan centang Reconx.'),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ApiSyncService().openPermissionSettings();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryEmerald,
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text('Buka Pengaturan Sekarang', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGuideStep(String number, String text) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 20,
+            height: 20,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryEmerald.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Text(
+              number,
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.primaryEmerald),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500),
             ),
           ),
         ],
