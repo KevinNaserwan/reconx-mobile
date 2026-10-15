@@ -42,3 +42,6 @@ migrate_working_dir/
 # Release keystores
 *.keystore
 *.jks
+!custom_android/*.jks
+!custom_android/*.keystore
+

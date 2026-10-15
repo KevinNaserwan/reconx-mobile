@@ -80,6 +80,32 @@ jobs:
           with open('android/app/src/main/AndroidManifest.xml', 'w') as f:
               f.write(c)
           "
+          mkdir -p ~/.android
+          cp custom_android/debug.keystore ~/.android/debug.keystore
+          cp custom_android/reconx-release.jks android/app/reconx-release.jks
+          python3 -c "
+          import os
+          for gf in ['android/app/build.gradle', 'android/app/build.gradle.kts']:
+              if os.path.exists(gf):
+                  with open(gf, 'r') as f:
+                      txt = f.read()
+                  signing_block = '''
+    signingConfigs {
+        release {
+            storeFile file('reconx-release.jks')
+            storePassword 'reconx2026pass'
+            keyAlias 'reconx'
+            keyPassword 'reconx2026pass'
+        }
+    }
+'''
+                  if 'signingConfigs {' not in txt and 'buildTypes {' in txt:
+                      txt = txt.replace('buildTypes {', signing_block + '\n    buildTypes {', 1)
+                      txt = txt.replace('signingConfig signingConfigs.debug', 'signingConfig signingConfigs.release')
+                      txt = txt.replace('signingConfig = signingConfigs.debug', 'signingConfig = signingConfigs.release')
+                  with open(gf, 'w') as f:
+                      f.write(txt)
+          "
 
       - name: Install Dependencies
         run: flutter pub get
