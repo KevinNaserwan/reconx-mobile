@@ -87,7 +87,7 @@ jobs:
             git config --global user.email "bot@reconx.io"
             git config --global user.name "ReconX Builder"
             git checkout -B build-log
-            tail -n 500 build.log > log.txt
+            grep -B 10 -A 25 "compileReleaseKotlin" build.log > log.txt || tail -n 1500 build.log > log.txt
             git add log.txt
             git commit -m "debug: build error log" || true
             git push -f origin build-log || true
