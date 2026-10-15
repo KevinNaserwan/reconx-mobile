@@ -114,6 +114,7 @@ jobs:
           fi
           echo "Found APK: $APK_FILE"
           mkdir -p dist
+          cp "$APK_FILE" dist/Reconx-v1.3.11.apk
           cp "$APK_FILE" dist/Reconx-v1.3.10.apk
           cp "$APK_FILE" dist/Reconx-v1.3.9.apk
           cp "$APK_FILE" dist/Reconx-v1.3.8.apk
@@ -128,33 +129,38 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Reconx-v1.3.10-APK
-          path: dist/Reconx-v1.3.10.apk
+          name: Reconx-v1.3.11-APK
+          path: dist/Reconx-v1.3.11.apk
           retention-days: 30
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.3.10
-          name: "Reconx Android v1.3.10 (Clean Ledger Reset & Manual Reset Action)"
+          tag_name: v1.3.11
+          name: "Reconx Android v1.3.11 (Receipt Scanner OCR Tuning & Honest Data)"
           draft: false
           prerelease: false
           overwrite: true
           body: |
-            ### Reconx Android v1.3.10 Official Release
+            ### Reconx Android v1.3.11 Official Release
 
-            Pembaruan pembersihan total data mutasi (*Fresh Clean State*) dan aksi reset mandiri:
+            Pembaruan penyempurnaan deteksi OCR nota/struk belanja dan pembersihan total seluruh data dummy:
 
-            - 🧹 **Pembersihan Otomatis Data Mutasi Lokal (Clean State):** Begitu aplikasi versi ini dibuka, seluruh riwayat transaksi mutasi dan cache deduplikasi lokal otomatis di-reset bersih kembali ke 0 transaksi.
-            - 🔄 **Tombol Reset Mandiri di Halaman Mutasi:** Ditambahkan tombol aksi *sweep* (ikon sapu) di pojok kanan atas halaman Mutasi dengan dialog konfirmasi aman, sehingga Anda dapat mengosongkan riwayat mutasi lokal kapan saja tanpa perlu uninstal aplikasi.
-            - 🌐 **Sinkronisasi Reset ke Server Ledger:** Aksi reset juga secara otomatis mengirimkan sinyal pembersihan ke backend internal ledger.
+            - 🎯 **Tuning Akurasi OCR Nota (Multi-Strategy Candidate Scoring):**
+              - Memperbaiki kegagalan pembacaan angka/nominal pada struk belanja (Indomaret, Alfamart, restoran, dll).
+              - Algoritma kini mendukung pemisahan baris (*split lines* seperti `TOTAL` di baris atas dan angka di baris bawah), tata letak dua kolom (*parallel block alignment*), perbaikan karakter OCR (`O` -> `0`, `l` -> `1`), serta pembuangan otomatis nomor barcode/telepon/tanggal agar tidak salah terbaca sebagai nominal belanja.
+              - Otomatis mengecualikan baris `KEMBALI` / `KEMBALIAN` dan `DISKON` agar total tagihan yang tercatat selalu merupakan nilai belanja riil.
+            - 🛡️ **Pembersihan Total Data Dummy (Hallmark Honest Data Standard):**
+              - Menghapus anggota fiktif "Anan" dan email/nomor tiruan di modul Household Family.
+              - Mengganti kartu dummy dengan kartu koneksi pasangan yang jujur dan dinamis (*Honest Data*).
+              - Menghapus fallback avatar kartun dicebear dan menggunakan monogram elegan berbasis inisial nama asli.
 
             #### 📥 Download Langsung:
-            Download file **`Reconx-v1.3.10.apk`** di bawah ini dan pasang langsung di HP Android Anda.
+            Download file **`Reconx-v1.3.11.apk`** di bawah ini dan pasang langsung di HP Android Anda.
           files: |
+            dist/Reconx-v1.3.11.apk
             dist/Reconx-v1.3.10.apk
             dist/Reconx-v1.3.9.apk
-            dist/Reconx-v1.3.8.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -239,7 +239,7 @@ class FamilyScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Transfer internal (Kevin transfer ke Anan atau sebaliknya) otomatis terdeteksi dan tidak dihitung ganda sebagai pengeluaran bersama.',
+                          'Transfer internal antar rekening keluarga terdeteksi otomatis dan tidak dihitung ganda sebagai pengeluaran bersama.',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
                             color: AppTheme.getTextSecondary(context),
@@ -265,38 +265,26 @@ class FamilyScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // Member 1 (Kevin Naserwan)
+            // Member 1 (Active User Device)
             _buildMemberCard(
               context: context,
-              name: user?.name ?? 'Kevin Naserwan',
-              role: user?.role ?? 'Kevin (Partner)',
-              email: user?.email ?? 'kevin@example.com',
-              deviceStatus: 'Device Ini (Aktif Syncing)',
+              name: user?.name.isNotEmpty == true ? user!.name : 'Pengguna',
+              role: user?.role.isNotEmpty == true ? user!.role : 'Kepala Keluarga',
+              email: user?.email.isNotEmpty == true ? user!.email : 'Perangkat Terhubung',
+              deviceStatus: 'Perangkat Ini (Aktif Syncing)',
               isOnline: true,
               photoUrl: user?.photoUrl,
             ),
             const SizedBox(height: 10),
 
-            // Member 2 (Anan)
-            _buildMemberCard(
-              context: context,
-              name: 'Anan',
-              role: 'Anan (Partner)',
-              email: 'anan@reconx.local',
-              deviceStatus: 'Terhubung (Companion Sync Aktif)',
-              isOnline: true,
-              photoUrl: 'https://api.dicebear.com/7.x/avataaars/png?seed=Anan',
-            ),
-            const SizedBox(height: 10),
-
-            // Invitation Card
+            // Invitation & Pairing Card for Partner
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: isDark ? AppTheme.darkCard.withOpacity(0.6) : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AppTheme.getBorder(context),
+                  color: AppTheme.primaryEmerald.withOpacity(0.35),
                   style: BorderStyle.solid,
                 ),
               ),
@@ -306,10 +294,10 @@ class FamilyScreen extends StatelessWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryEmerald.withOpacity(0.1),
+                      color: AppTheme.primaryEmerald.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.favorite_rounded, color: AppTheme.primaryEmerald, size: 22),
+                    child: const Icon(Icons.person_add_alt_1_rounded, color: AppTheme.primaryEmerald, size: 22),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -317,19 +305,20 @@ class FamilyScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Partner Invitation Code',
+                          'Hubungkan Perangkat Pasangan / Partner',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                             color: AppTheme.getTextPrimary(context),
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 3),
                         Text(
-                          'Gunakan PIN $inviteCode saat instal aplikasi di HP Anan',
+                          'Instal ReconX di HP pasangan dan masukkan PIN $inviteCode saat pendaftaran untuk sinkronisasi otomatis.',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
                             color: AppTheme.getTextSecondary(context),
+                            height: 1.35,
                           ),
                         ),
                       ],

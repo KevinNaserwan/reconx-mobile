@@ -17,13 +17,13 @@ class UserProfile {
   UserProfile({
     required this.name,
     required this.email,
-    this.phoneNumber = '081234567890',
+    this.phoneNumber = '',
     this.photoUrl,
     required this.role,
     required this.token,
-    this.familyId = 'fam-kevin-001',
-    this.familyName = 'Kevin & Anan (Couple)',
-    this.familyInviteCode = 'COUPLE-KVN-ANN',
+    this.familyId = '',
+    this.familyName = 'Finansial Keluarga',
+    this.familyInviteCode = '',
   });
 
   UserProfile copyWith({
@@ -63,15 +63,15 @@ class UserProfile {
       };
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
-        name: json['name'] ?? 'Kevin Naserwan',
-        email: json['email'] ?? 'kevin.naserwan@gmail.com',
-        phoneNumber: json['phoneNumber'] ?? '081234567890',
+        name: json['name'] ?? 'Pengguna',
+        email: json['email'] ?? '',
+        phoneNumber: json['phoneNumber'] ?? '',
         photoUrl: json['photoUrl'],
-        role: json['role'] ?? 'Kevin (Partner)',
+        role: json['role'] ?? 'Kepala Keluarga',
         token: json['token'] ?? '',
-        familyId: json['familyId'] ?? 'fam-kevin-001',
-        familyName: json['familyName'] ?? 'Kevin & Anan (Couple)',
-        familyInviteCode: json['familyInviteCode'] ?? 'COUPLE-KVN-ANN',
+        familyId: json['familyId'] ?? '',
+        familyName: json['familyName'] ?? 'Finansial Keluarga',
+        familyInviteCode: json['familyInviteCode'] ?? '',
       );
 }
 
@@ -110,20 +110,21 @@ class AuthService extends ChangeNotifier {
         debugPrint('Google Sign-In native dialog skipped/unavailable: $e');
       }
 
-      final name = account?.displayName ?? 'Kevin Naserwan';
-      final email = account?.email ?? 'kevin.naserwan@gmail.com';
-      final photoUrl = account?.photoUrl ?? 'https://api.dicebear.com/7.x/avataaars/png?seed=Kevin';
+      final name = account?.displayName ?? (account?.email?.split('@')[0] ?? 'Pengguna');
+      final email = account?.email ?? '';
+      final photoUrl = account?.photoUrl;
 
+      final ts = DateTime.now().millisecondsSinceEpoch;
       final profile = UserProfile(
         name: name,
         email: email,
-        phoneNumber: '081234567890',
+        phoneNumber: '',
         photoUrl: photoUrl,
-        role: 'Kevin (Partner)',
-        token: 'reconx_mobile_bearer_${DateTime.now().millisecondsSinceEpoch}',
-        familyId: 'fam-kevin-001',
-        familyName: 'Kevin & Anan (Couple)',
-        familyInviteCode: 'COUPLE-KVN-ANN',
+        role: 'Kepala Keluarga',
+        token: 'reconx_mobile_bearer_$ts',
+        familyId: 'fam-$ts',
+        familyName: 'Finansial Keluarga',
+        familyInviteCode: 'FAM-${ts.toString().substring(7)}',
       );
 
       _currentUser = profile;
@@ -148,20 +149,21 @@ class AuthService extends ChangeNotifier {
     String? photoUrl,
   }) async {
     try {
-      final finalFamilyName = familyName?.isNotEmpty == true ? familyName! : 'Kevin & Anan (Couple)';
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final finalFamilyName = familyName?.isNotEmpty == true ? familyName! : 'Finansial Keluarga';
       final finalInviteCode = inviteCode?.isNotEmpty == true
           ? inviteCode!.toUpperCase()
-          : 'COUPLE-KVN-ANN';
-      final finalRole = role?.isNotEmpty == true ? role! : 'Kevin (Partner)';
+          : 'FAM-${ts.toString().substring(7)}';
+      final finalRole = role?.isNotEmpty == true ? role! : 'Kepala Keluarga';
 
       final profile = UserProfile(
         name: name,
         email: email,
-        phoneNumber: phoneNumber?.isNotEmpty == true ? phoneNumber! : '081234567890',
-        photoUrl: photoUrl ?? 'https://api.dicebear.com/7.x/avataaars/png?seed=${Uri.encodeComponent(name)}',
+        phoneNumber: phoneNumber ?? '',
+        photoUrl: photoUrl,
         role: finalRole,
-        token: 'reconx_mobile_bearer_${DateTime.now().millisecondsSinceEpoch}',
-        familyId: 'fam-${DateTime.now().millisecondsSinceEpoch}',
+        token: 'reconx_mobile_bearer_$ts',
+        familyId: 'fam-$ts',
         familyName: finalFamilyName,
         familyInviteCode: finalInviteCode,
       );

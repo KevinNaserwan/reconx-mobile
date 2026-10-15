@@ -149,7 +149,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     controller: emailCtrl,
                     keyboardType: TextInputType.emailAddress,
                     style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 14),
-                    decoration: _inputDecoration('kevin@example.com', context),
+                    decoration: _inputDecoration('nama@email.com', context),
                   ),
                   const SizedBox(height: 14),
 
@@ -160,7 +160,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     controller: phoneCtrl,
                     keyboardType: TextInputType.phone,
                     style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 14),
-                    decoration: _inputDecoration('081234567890', context),
+                    decoration: _inputDecoration('08xxxxxxxxxx', context),
                   ),
                   const SizedBox(height: 14),
 
@@ -379,7 +379,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              user?.name ?? 'Kevin Naserwan',
+                              user?.name.isNotEmpty == true ? user!.name : 'Pengguna',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
@@ -388,7 +388,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              user?.email ?? 'kevin@example.com',
+                              user?.email.isNotEmpty == true ? user!.email : 'Belum Login',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 color: AppTheme.getTextSecondary(context),
