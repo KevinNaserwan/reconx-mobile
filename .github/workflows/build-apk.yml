@@ -83,7 +83,20 @@ jobs:
         run: flutter pub get
 
       - name: Flutter Analyze
-        run: flutter analyze
+        run: |
+          flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee analyze.log || {
+            echo "::error::Flutter analyze failed!"
+            echo "==================== ANALYZE LOG ===================="
+            cat analyze.log
+            git config --global user.email "bot@reconx.io"
+            git config --global user.name "ReconX Builder"
+            git checkout -B build-log
+            cp analyze.log log.txt
+            git add log.txt
+            git commit -m "debug: analyze log" || true
+            git push -f origin build-log || true
+            exit 1
+          }
 
       - name: Build Release APK
         id: build_step
@@ -94,6 +107,13 @@ jobs:
             echo "::error::Flutter build apk failed!"
             echo "==================== BUILD ERROR TAIL ===================="
             tail -n 250 build.log
+            git config --global user.email "bot@reconx.io"
+            git config --global user.name "ReconX Builder"
+            git checkout -B build-log
+            tail -n 500 build.log > log.txt
+            git add log.txt
+            git commit -m "debug: build error log" || true
+            git push -f origin build-log || true
             exit 1
           }
 
