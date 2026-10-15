@@ -226,6 +226,7 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
           category: 'Konsumsi & F&B',
           detectedItems: ['Pengeluaran Fisik'],
           confidenceScore: 0.5,
+          engine: 'Default Fallback',
         );
 
     _merchantController.text = result.merchant;
@@ -800,7 +801,9 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          _scanResult!.amount > 0 ? '✓ Terdeteksi Akurat' : 'Isi Manual',
+                          _scanResult!.amount > 0
+                              ? '✓ ${_scanResult!.engine} (${(_scanResult!.confidenceScore * 100).toInt()}%)'
+                              : 'Isi Manual',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 10,
                             fontWeight: FontWeight.w700,

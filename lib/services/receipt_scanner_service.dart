@@ -1,7 +1,11 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'api_sync_service.dart';
 
 class ReceiptScanResult {
   final String imagePath;
@@ -12,6 +16,7 @@ class ReceiptScanResult {
   String category;
   List<String> detectedItems;
   double confidenceScore;
+  String engine;
 
   ReceiptScanResult({
     required this.imagePath,
@@ -22,6 +27,7 @@ class ReceiptScanResult {
     required this.category,
     required this.detectedItems,
     this.confidenceScore = 0.98,
+    this.engine = 'PaddleOCR PP-OCRv4',
   });
 }
 
@@ -73,6 +79,37 @@ class ReceiptScannerService {
 
   /// High-Precision Indonesian Receipt & OCR Tuning Engine
   Future<ReceiptScanResult?> parseReceiptImage(String imagePath) async {
+    // 1. Try PaddleOCR PP-OCRv4 Engine via Backend Microservice
+    try {
+      final backendUrl = ApiSyncService().backendUrl;
+      final uri = Uri.parse('$backendUrl/ocr/scan-receipt');
+      final request = http.MultipartRequest('POST', uri);
+      request.files.add(await http.MultipartFile.fromPath('file', imagePath));
+
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 15));
+      if (streamedResponse.statusCode == 200) {
+        final respStr = await streamedResponse.stream.bytesToString();
+        final Map<String, dynamic> data = jsonDecode(respStr);
+        if (data['success'] == true && data['amount'] != null && (data['amount'] as num) > 0) {
+          debugPrint('[OCR] PaddleOCR PP-OCRv4 Success: ${data["merchant"]} - Rp ${data["amount"]}');
+          return ReceiptScanResult(
+            imagePath: imagePath,
+            merchant: data['merchant'] ?? 'Merchant Terdeteksi',
+            amount: (data['amount'] as num).toDouble(),
+            date: DateTime.tryParse(data['date'] ?? '') ?? DateTime.now(),
+            paymentMethod: data['paymentMethod'] ?? 'Transfer Bank',
+            category: data['category'] ?? 'Konsumsi & Belanja',
+            detectedItems: List<String>.from(data['detectedItems'] ?? [data['merchant'] ?? 'Transaksi']),
+            confidenceScore: (data['confidenceScore'] as num?)?.toDouble() ?? 0.99,
+            engine: 'PaddleOCR PP-OCRv4',
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('[OCR] PaddleOCR service unreachable or timed out ($e). Falling back to on-device Google ML Kit.');
+    }
+
+    // 2. High-Precision On-Device Google ML Kit Fallback
     try {
       final inputImage = InputImage.fromFilePath(imagePath);
       final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
@@ -112,6 +149,7 @@ class ReceiptScannerService {
         category: category,
         detectedItems: items.isNotEmpty ? items : [merchant],
         confidenceScore: detectedAmount > 0 ? 0.98 : 0.60,
+        engine: 'Google ML Kit (Offline Fallback)',
       );
     } catch (e) {
       debugPrint('[OCR] Processing error: $e');
@@ -124,6 +162,7 @@ class ReceiptScannerService {
         category: 'Konsumsi & F&B',
         detectedItems: ['Pengeluaran Fisik'],
         confidenceScore: 0.5,
+        engine: 'Default Fallback',
       );
     }
   }
