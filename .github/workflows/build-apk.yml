@@ -35,6 +35,7 @@ jobs:
         run: |
           rm -rf android
           flutter create . --platforms android --org com.reconx.agent --project-name reconx_mobile -a kotlin
+          rm -rf test/
           chmod +x android/gradlew
           find android -name "build.gradle*" -exec sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/g' {} + || true
