@@ -40,6 +40,8 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   final List<String> _filters = [
     'Semua',
+    'Uang Keluar',
+    'Uang Masuk',
     'QRIS',
     'Transfer Bank',
     'E-Wallet',
@@ -226,28 +228,49 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      currencyFormat.format(tx.amount),
+                      (tx.isIncome ? '+ ' : '- ') + currencyFormat.format(tx.amount),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
-                        color: AppTheme.primaryEmerald,
+                        color: tx.isIncome ? AppTheme.primaryEmerald : const Color(0xFFF43F5E),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryEmerald.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        tx.status == 'SYNCED_TO_LEDGER' ? 'Terekonsiliasi ke Ledger' : 'Tersimpan Offline',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.primaryEmerald,
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: (tx.isIncome ? AppTheme.primaryEmerald : const Color(0xFFF43F5E)).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            tx.isIncome ? '↓ Uang Masuk' : '↑ Uang Keluar',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: tx.isIncome ? AppTheme.primaryEmerald : const Color(0xFFF43F5E),
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryEmerald.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            tx.status == 'SYNCED_TO_LEDGER' ? 'Terekonsiliasi ke Ledger' : 'Tersimpan Offline',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.primaryEmerald,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -352,7 +375,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           final history = ApiSyncService().history;
 
           final filtered = history.where((tx) {
-            if (_selectedFilter == 'QRIS') {
+            if (_selectedFilter == 'Uang Masuk') {
+              if (!tx.isIncome) return false;
+            } else if (_selectedFilter == 'Uang Keluar') {
+              if (tx.isIncome) return false;
+            } else if (_selectedFilter == 'QRIS') {
               if (!tx.channel.toLowerCase().contains('qris') &&
                   !tx.appName.toLowerCase().contains('qris') &&
                   !tx.merchant.toLowerCase().contains('qris')) {
@@ -516,15 +543,39 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(
-                                          tx.merchant,
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppTheme.getTextPrimary(context),
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                tx.merchant,
+                                                style: GoogleFonts.plusJakartaSans(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppTheme.getTextPrimary(context),
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: tx.isIncome
+                                                    ? AppTheme.primaryEmerald.withOpacity(0.12)
+                                                    : const Color(0xFFF43F5E).withOpacity(0.12),
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                tx.isIncome ? '↓ Masuk' : '↑ Keluar',
+                                                style: GoogleFonts.plusJakartaSans(
+                                                  fontSize: 9,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: tx.isIncome ? AppTheme.primaryEmerald : const Color(0xFFF43F5E),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                         const SizedBox(height: 3),
                                         Text(
@@ -539,11 +590,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                   ),
                                   const SizedBox(width: 10),
                                   Text(
-                                    currencyFormat.format(tx.amount),
+                                    (tx.isIncome ? '+ ' : '- ') + currencyFormat.format(tx.amount),
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w800,
-                                      color: AppTheme.primaryEmerald,
+                                      color: tx.isIncome ? AppTheme.primaryEmerald : const Color(0xFFF43F5E),
                                     ),
                                   ),
                                 ],

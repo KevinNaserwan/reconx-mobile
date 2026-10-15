@@ -323,34 +323,128 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 
                 const SizedBox(height: 16),
 
-                // Metrics Row (With Privacy Eye Toggle)
+                // Metrics Grid: Cashflow Split (Uang Keluar & Uang Masuk)
                 Row(
                   children: [
                     Expanded(
-                      flex: 4,
-                      child: _buildMetricCard(
-                        context,
-                        lang.tr('total_tracked'),
-                        _isBalanceMasked ? '••••••••' : currencyFormat.format(syncService.syncedVolumeToday),
-                        Icons.payments_outlined,
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.getCard(context),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: const Color(0xFFF43F5E).withOpacity(0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF43F5E).withOpacity(0.12),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.arrow_upward_rounded, size: 14, color: Color(0xFFF43F5E)),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Uang Keluar',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.getTextSecondary(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _isBalanceMasked
+                                  ? '••••••••'
+                                  : '- ${currencyFormat.format(syncService.expenseVolumeToday)}',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFFF43F5E),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      flex: 3,
+                      child: Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppTheme.getCard(context),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppTheme.primaryEmerald.withOpacity(0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryEmerald.withOpacity(0.12),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.arrow_downward_rounded, size: 14, color: AppTheme.primaryEmerald),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Uang Masuk',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.getTextSecondary(context),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _isBalanceMasked
+                                  ? '••••••••'
+                                  : '+ ${currencyFormat.format(syncService.incomeVolumeToday)}',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.primaryEmerald,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 10),
+
+                Row(
+                  children: [
+                    Expanded(
                       child: _buildMetricCard(
                         context,
-                        lang.tr('transactions'),
+                        'Total Transaksi Hari Ini',
                         '${syncService.syncedCountToday} Trx',
                         Icons.sync_alt_rounded,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      flex: 3,
                       child: _buildMetricCard(
                         context,
-                        lang.tr('latency'),
+                        'Latensi Sync Engine',
                         '${syncService.latencyMs}ms',
                         Icons.speed_rounded,
                       ),
@@ -547,15 +641,39 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    item.merchant,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppTheme.getTextPrimary(context),
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          item.merchant,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppTheme.getTextPrimary(context),
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: item.isIncome
+                                              ? AppTheme.primaryEmerald.withOpacity(0.12)
+                                              : const Color(0xFFF43F5E).withOpacity(0.12),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(
+                                          item.isIncome ? '↓ Masuk' : '↑ Keluar',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w800,
+                                            color: item.isIncome ? AppTheme.primaryEmerald : const Color(0xFFF43F5E),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
@@ -570,11 +688,13 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                             ),
                             const SizedBox(width: 10),
                             Text(
-                              _isBalanceMasked ? '••••••' : currencyFormat.format(item.amount),
+                              _isBalanceMasked
+                                  ? '••••••'
+                                  : (item.isIncome ? '+ ' : '- ') + currencyFormat.format(item.amount),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w800,
-                                color: AppTheme.primaryEmerald,
+                                color: item.isIncome ? AppTheme.primaryEmerald : const Color(0xFFF43F5E),
                               ),
                             ),
                           ],

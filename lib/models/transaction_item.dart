@@ -9,6 +9,7 @@ class SyncedTransaction {
   final String channel;
   final DateTime timestamp;
   final String status;
+  final String type; // 'EXPENSE' or 'INCOME'
 
   SyncedTransaction({
     required this.id,
@@ -21,9 +22,11 @@ class SyncedTransaction {
     required this.channel,
     required this.timestamp,
     required this.status,
+    this.type = 'EXPENSE',
   });
 
   DateTime get timestampWib => timestamp.toUtc().add(const Duration(hours: 7));
+  bool get isIncome => type.toUpperCase() == 'INCOME' || type.toUpperCase() == 'CREDIT';
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -36,10 +39,27 @@ class SyncedTransaction {
         'channel': channel,
         'timestamp': timestamp.toIso8601String(),
         'status': status,
+        'type': type,
       };
 
   factory SyncedTransaction.fromJson(Map<String, dynamic> json) {
     final rawNotif = json['rawNotification'] is Map ? json['rawNotification'] as Map : null;
+    
+    // Resolve transaction type (INCOME vs EXPENSE)
+    String resolvedType = (json['type'] ?? json['transactionType'] ?? '').toString().toUpperCase();
+    if (resolvedType != 'INCOME' && resolvedType != 'EXPENSE') {
+      final combined = '${json['title'] ?? ''} ${json['content'] ?? ''} ${rawNotif?['title'] ?? ''} ${rawNotif?['content'] ?? ''}'.toLowerCase();
+      final isInc = combined.contains('masuk') ||
+          combined.contains('menerima') ||
+          combined.contains('terima uang') ||
+          combined.contains('top up') ||
+          combined.contains('kredit') ||
+          combined.contains('cashback') ||
+          combined.contains('refund') ||
+          combined.contains('setoran');
+      resolvedType = isInc ? 'INCOME' : 'EXPENSE';
+    }
+
     return SyncedTransaction(
       id: json['id'] ?? json['transactionRef'] ?? json['transactionId'] ?? 'TRX-UNKNOWN',
       appName: json['appName'] ?? json['providerName'] ?? json['app'] ?? (rawNotif?['app']) ?? 'Bank / Wallet',
@@ -55,6 +75,7 @@ class SyncedTransaction {
               ? DateTime.tryParse(json['syncedAt']) ?? DateTime.now()
               : DateTime.now()),
       status: json['status'] ?? 'SYNCED_TO_LEDGER',
+      type: resolvedType,
     );
   }
 }

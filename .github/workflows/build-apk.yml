@@ -114,6 +114,7 @@ jobs:
           fi
           echo "Found APK: $APK_FILE"
           mkdir -p dist
+          cp "$APK_FILE" dist/Reconx-v1.3.12.apk
           cp "$APK_FILE" dist/Reconx-v1.3.11.apk
           cp "$APK_FILE" dist/Reconx-v1.3.10.apk
           cp "$APK_FILE" dist/Reconx-v1.3.9.apk
@@ -129,38 +130,41 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Reconx-v1.3.11-APK
-          path: dist/Reconx-v1.3.11.apk
+          name: Reconx-v1.3.12-APK
+          path: dist/Reconx-v1.3.12.apk
           retention-days: 30
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.3.11
-          name: "Reconx Android v1.3.11 (Receipt Scanner OCR Tuning & Honest Data)"
+          tag_name: v1.3.12
+          name: "Reconx Android v1.3.12 (Pemisahan Jelas Uang Masuk & Keluar + Zero Dummy Data)"
           draft: false
           prerelease: false
           overwrite: true
           body: |
-            ### Reconx Android v1.3.11 Official Release
+            ### Reconx Android v1.3.12 Official Release
 
-            Pembaruan penyempurnaan deteksi OCR nota/struk belanja dan pembersihan total seluruh data dummy:
+            Pembaruan pemisahan akurat Uang Masuk (Income) vs Uang Keluar (Expense) secara realtime, penyempurnaan deteksi OCR nota/struk belanja, dan pembersihan total seluruh data dummy:
 
+            - 💸 **Pemisahan Jelas Uang Masuk (Income) & Uang Keluar (Expense):**
+              - Notifikasi bank & dompet digital kini otomatis diklasifikasikan sebagai Uang Masuk (`+`) dengan badge hijau emerald atau Uang Keluar (`-`) dengan badge merah rose.
+              - Dashboard menyajikan ringkasan kartu terpisah: **Uang Keluar** vs **Uang Masuk** hari ini.
+              - Daftar mutasi dilengkapi filter cepat: `Uang Keluar`, `Uang Masuk`, `QRIS`, `Transfer Bank`, `E-Wallet`, dan `Scan Nota`.
             - 🎯 **Tuning Akurasi OCR Nota (Multi-Strategy Candidate Scoring):**
-              - Memperbaiki kegagalan pembacaan angka/nominal pada struk belanja (Indomaret, Alfamart, restoran, dll).
-              - Algoritma kini mendukung pemisahan baris (*split lines* seperti `TOTAL` di baris atas dan angka di baris bawah), tata letak dua kolom (*parallel block alignment*), perbaikan karakter OCR (`O` -> `0`, `l` -> `1`), serta pembuangan otomatis nomor barcode/telepon/tanggal agar tidak salah terbaca sebagai nominal belanja.
-              - Otomatis mengecualikan baris `KEMBALI` / `KEMBALIAN` dan `DISKON` agar total tagihan yang tercatat selalu merupakan nilai belanja riil.
+              - Memperbaiki kegagalan pembacaan angka/nominal pada struk belanja (Indomaret, Alfamart, restoran, SPBU, dll).
+              - Algoritma mendukung pemisahan baris (*split lines*), tata letak dua kolom (*parallel block alignment*), perbaikan karakter OCR (`O` -> `0`, `l` -> `1`), serta pembuangan nomor barcode/telepon/tanggal agar tidak salah terbaca.
+              - Otomatis mengecualikan baris `KEMBALI` / `KEMBALIAN` dan `DISKON` agar tagihan belanja selalu riil.
             - 🛡️ **Pembersihan Total Data Dummy (Hallmark Honest Data Standard):**
-              - Menghapus anggota fiktif "Anan" dan email/nomor tiruan di modul Household Family.
+              - Menghapus anggota fiktif dan email/nomor tiruan di seluruh modul.
               - Mengganti kartu dummy dengan kartu koneksi pasangan yang jujur dan dinamis (*Honest Data*).
-              - Menghapus fallback avatar kartun dicebear dan menggunakan monogram elegan berbasis inisial nama asli.
 
             #### 📥 Download Langsung:
-            Download file **`Reconx-v1.3.11.apk`** di bawah ini dan pasang langsung di HP Android Anda.
+            Download file **`Reconx-v1.3.12.apk`** di bawah ini dan pasang langsung di HP Android Anda.
           files: |
+            dist/Reconx-v1.3.12.apk
             dist/Reconx-v1.3.11.apk
             dist/Reconx-v1.3.10.apk
-            dist/Reconx-v1.3.9.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -31,6 +31,12 @@ class ApiSyncService extends ChangeNotifier {
   double _syncedVolumeToday = 0.0;
   double get syncedVolumeToday => _syncedVolumeToday;
 
+  double _expenseVolumeToday = 0.0;
+  double get expenseVolumeToday => _expenseVolumeToday;
+
+  double _incomeVolumeToday = 0.0;
+  double get incomeVolumeToday => _incomeVolumeToday;
+
   int _latencyMs = 28;
   int get latencyMs => _latencyMs;
 
@@ -127,7 +133,9 @@ class ApiSyncService extends ChangeNotifier {
         tx.timestamp.month == now.month &&
         tx.timestamp.day == now.day);
     _syncedCountToday = todayTxs.length;
-    _syncedVolumeToday = todayTxs.fold(0.0, (sum, item) => sum + item.amount);
+    _expenseVolumeToday = todayTxs.where((tx) => !tx.isIncome).fold(0.0, (sum, item) => sum + item.amount);
+    _incomeVolumeToday = todayTxs.where((tx) => tx.isIncome).fold(0.0, (sum, item) => sum + item.amount);
+    _syncedVolumeToday = _expenseVolumeToday + _incomeVolumeToday;
   }
 
   Future<void> _saveProcessedKeys() async {
@@ -204,6 +212,8 @@ class ApiSyncService extends ChangeNotifier {
     _history.clear();
     _syncedCountToday = 0;
     _syncedVolumeToday = 0.0;
+    _expenseVolumeToday = 0.0;
+    _incomeVolumeToday = 0.0;
     _processedNotificationKeys.clear();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('reconx_saved_history');
@@ -330,6 +340,7 @@ class ApiSyncService extends ChangeNotifier {
       channel: 'RECEIPT_OCR_SCAN',
       timestamp: DateTime.now(),
       status: 'SYNCED_TO_LEDGER',
+      type: 'EXPENSE',
     );
 
     _history.insert(0, item);
@@ -354,6 +365,9 @@ class ApiSyncService extends ChangeNotifier {
           'content': item.content,
           'postTime': DateTime.now().millisecondsSinceEpoch,
           'userEmail': user?.email ?? 'user@reconx.io',
+          'explicitAmount': amount,
+          'explicitMerchant': merchant,
+          'type': 'EXPENSE',
         }),
       ).timeout(const Duration(seconds: 4));
     } catch (_) {}
@@ -436,6 +450,17 @@ class ApiSyncService extends ChangeNotifier {
     _processedNotificationKeys.add(uniqueKey);
     _saveProcessedKeys();
 
+    final isIncome = fullText.contains('masuk') ||
+        fullText.contains('menerima') ||
+        fullText.contains('terima uang') ||
+        fullText.contains('top up') ||
+        fullText.contains('kredit') ||
+        fullText.contains('cashback') ||
+        fullText.contains('refund') ||
+        fullText.contains('setoran');
+    final txType = isIncome ? 'INCOME' : 'EXPENSE';
+    final detectedMerchant = _extractMerchantClientSide('$title $content');
+
     try {
       final stopwatch = Stopwatch()..start();
       final uri = Uri.parse('$_backendUrl/mobile/sync-notification');
@@ -452,6 +477,9 @@ class ApiSyncService extends ChangeNotifier {
           'content': content,
           'postTime': postTime ?? DateTime.now().millisecondsSinceEpoch,
           'userEmail': user?.email ?? 'user@reconx.io',
+          'explicitAmount': candidateAmount > 0 ? candidateAmount : null,
+          'explicitMerchant': detectedMerchant,
+          'type': txType,
         }),
       ).timeout(const Duration(seconds: 5));
       stopwatch.stop();
@@ -492,10 +520,11 @@ class ApiSyncService extends ChangeNotifier {
       title: title,
       content: content,
       amount: fallbackAmount,
-      merchant: _extractMerchantClientSide('$title $content'),
+      merchant: detectedMerchant,
       channel: 'OFFLINE_QUEUED',
       timestamp: DateTime.now(),
       status: 'QUEUED_LOCAL',
+      type: txType,
     );
 
     _history.insert(0, fallbackItem);
