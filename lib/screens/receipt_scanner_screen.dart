@@ -48,14 +48,16 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
   String _selectedCategory = 'Konsumsi & F&B';
 
   final List<String> _paymentMethods = [
+    'Tunai (Cash)',
     'QRIS BCA',
     'QRIS SeaBank',
     'QRIS blu BCA',
     'GoPay QRIS',
     'ShopeePay QRIS',
+    'Debit BCA',
     'Debit Mandiri',
     'Debit BRI',
-    'Tunai (Cash)',
+    'Transfer Bank',
   ];
 
   final List<String> _categories = [
@@ -777,14 +779,36 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
                   ),
                   const SizedBox(height: 16),
 
-                  // Total Amount
-                  Text(
-                    'Total Pembayaran (Rp)',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.getTextPrimary(context),
-                    ),
+                  // Total Amount with Confidence Tag
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Total Pembayaran (Rp)',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.getTextPrimary(context),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                        decoration: BoxDecoration(
+                          color: _scanResult!.amount > 0
+                              ? AppTheme.primaryEmerald.withOpacity(0.12)
+                              : Colors.amber.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          _scanResult!.amount > 0 ? '✓ Terdeteksi Akurat' : 'Isi Manual',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: _scanResult!.amount > 0 ? AppTheme.primaryEmerald : Colors.amber,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 6),
                   TextField(
@@ -796,6 +820,39 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
                       fontWeight: FontWeight.w900,
                     ),
                     decoration: _inputDecoration(context),
+                  ),
+                  const SizedBox(height: 8),
+                  // Quick adjustment chips for torn or imprecise receipts
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [1000, 5000, 10000, 50000].map((inc) {
+                      return InkWell(
+                        onTap: () {
+                          final current = double.tryParse(_amountController.text.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0.0;
+                          final next = current + inc;
+                          _amountController.text = next.toInt().toString();
+                          setState(() {});
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppTheme.darkBg : const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.getBorder(context)),
+                          ),
+                          child: Text(
+                            '+Rp ${(inc >= 1000 ? "${inc ~/ 1000}rb" : inc)}',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.getTextSecondary(context),
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                   const SizedBox(height: 16),
 

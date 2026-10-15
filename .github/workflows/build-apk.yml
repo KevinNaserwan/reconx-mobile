@@ -114,6 +114,7 @@ jobs:
           fi
           echo "Found APK: $APK_FILE"
           mkdir -p dist
+          cp "$APK_FILE" dist/Reconx-v1.3.13.apk
           cp "$APK_FILE" dist/Reconx-v1.3.12.apk
           cp "$APK_FILE" dist/Reconx-v1.3.11.apk
           cp "$APK_FILE" dist/Reconx-v1.3.10.apk
@@ -130,41 +131,44 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Reconx-v1.3.12-APK
-          path: dist/Reconx-v1.3.12.apk
+          name: Reconx-v1.3.13-APK
+          path: dist/Reconx-v1.3.13.apk
           retention-days: 30
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.3.12
-          name: "Reconx Android v1.3.12 (Pemisahan Jelas Uang Masuk & Keluar + Zero Dummy Data)"
+          tag_name: v1.3.13
+          name: "Reconx Android v1.3.13 (Support Format Nota Harga Tunai, Rekonsiliasi Tunai-Kembali & Multi-Channel Web Filter)"
           draft: false
           prerelease: false
           overwrite: true
           body: |
-            ### Reconx Android v1.3.12 Official Release
+            ### Reconx Android v1.3.13 Official Release
 
-            Pembaruan pemisahan akurat Uang Masuk (Income) vs Uang Keluar (Expense) secara realtime, penyempurnaan deteksi OCR nota/struk belanja, dan pembersihan total seluruh data dummy:
+            Pembaruan komprehensif dataset pengenalan nota fisik di Indonesia (dukungan format nota tanpa kata TOTAL seperti HARGA TUNAI, RUPIAH SPBU, TARIF parkir, serta rekonsiliasi aritmatika Tunai minus Kembali):
 
-            - 💸 **Pemisahan Jelas Uang Masuk (Income) & Uang Keluar (Expense):**
-              - Notifikasi bank & dompet digital kini otomatis diklasifikasikan sebagai Uang Masuk (`+`) dengan badge hijau emerald atau Uang Keluar (`-`) dengan badge merah rose.
-              - Dashboard menyajikan ringkasan kartu terpisah: **Uang Keluar** vs **Uang Masuk** hari ini.
-              - Daftar mutasi dilengkapi filter cepat: `Uang Keluar`, `Uang Masuk`, `QRIS`, `Transfer Bank`, `E-Wallet`, dan `Scan Nota`.
-            - 🎯 **Tuning Akurasi OCR Nota (Multi-Strategy Candidate Scoring):**
-              - Memperbaiki kegagalan pembacaan angka/nominal pada struk belanja (Indomaret, Alfamart, restoran, SPBU, dll).
-              - Algoritma mendukung pemisahan baris (*split lines*), tata letak dua kolom (*parallel block alignment*), perbaikan karakter OCR (`O` -> `0`, `l` -> `1`), serta pembuangan nomor barcode/telepon/tanggal agar tidak salah terbaca.
-              - Otomatis mengecualikan baris `KEMBALI` / `KEMBALIAN` dan `DISKON` agar tagihan belanja selalu riil.
-            - 🛡️ **Pembersihan Total Data Dummy (Hallmark Honest Data Standard):**
-              - Menghapus anggota fiktif dan email/nomor tiruan di seluruh modul.
-              - Mengganti kartu dummy dengan kartu koneksi pasangan yang jujur dan dinamis (*Honest Data*).
+            - 🧾 **Dukungan Penuh Beragam Format Nota di Indonesia:**
+              - **Format Tanpa Kata TOTAL (Harga Tunai):** Mengenali kata kunci `HARGA TUNAI`, `BAYAR TUNAI`, `UANG TUNAI`, `PEMBAYARAN TUNAI`, `TOTAL TUNAI` yang sering dipakai warung makan, depot, dan nota kontan toko kelontong.
+              - **Aritmatika Cerdas Tunai - Kembali:** Jika nota hanya mencantumkan nominal uang diserahkan (`TUNAI: 50.000`) dan uang kembalian (`KEMBALI: 15.000`), sistem secara otomatis menghitung nilai riil belanja = Rp 35.000.
+              - **Struk SPBU & Bensin (Pertamina / Shell):** Mengenali kata kunci khusus SPBU seperti `RUPIAH`, `JML RUPIAH`, `TOTAL (RP)` untuk transaksi pengisian bahan bakar.
+              - **Struk Parkir, Transportasi & Apotek:** Mendukung keyword `TARIF`, `BIAYA PARKIR`, `BIAYA TIKET`, `TOTAL RESEP`, dan `HARGA OBAT`.
+              - **Multi-Item Line Summation Fallback:** Jika bagian bawah nota terpotong atau buram, sistem secara cerdas menjumlahkan baris-baris harga barang yang terdeteksi.
+            - ⚡ **Penyempurnaan Review Hasil Scan & Tombol Penyesuaian Cepat:**
+              - Indikator akurasi OCR (*Confidence Tag*).
+              - Chip penyesuaian cepat nominal (+Rp 1rb, +Rp 5rb, +Rp 10rb, +Rp 50rb) untuk koreksi instan.
+              - Otomatis memilih metode pembayaran `Tunai (Cash)` bila terdeteksi transaksi tunai.
+            - 🌐 **Web Dashboard Multi-Channel Quick Filters:**
+              - Filter cepat di Web Internal Ledger: `Semua Mutasi`, `Uang Keluar`, `Uang Masuk`, `Scan Nota Fisik`, `QRIS & E-Wallet`, dan `Transfer Bank`.
 
             #### 📥 Download Langsung:
-            Download file **`Reconx-v1.3.12.apk`** di bawah ini dan pasang langsung di HP Android Anda.
+            Download file **`Reconx-v1.3.13.apk`** di bawah ini dan pasang langsung di HP Android Anda.
           files: |
+            dist/Reconx-v1.3.13.apk
             dist/Reconx-v1.3.12.apk
             dist/Reconx-v1.3.11.apk
-            dist/Reconx-v1.3.10.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -128,7 +128,7 @@ class ReceiptScannerService {
     }
   }
 
-  /// Intelligently scores and picks the true transaction total
+  /// Intelligently scores and picks the true transaction total across diverse Indonesian receipt formats
   double _extractBestAmount(RecognizedText recognizedText, List<String> lines) {
     final candidates = <_AmountCandidate>[];
 
@@ -146,8 +146,13 @@ class ReceiptScannerService {
       'kembalian tunai',
     ];
 
-    // Strongest total keywords
+    // Strongest total & explicit cash price keywords (Priority 1)
     final p1Keywords = [
+      'harga tunai',
+      'bayar tunai',
+      'uang tunai',
+      'pembayaran tunai',
+      'total tunai',
       'total bayar',
       'total belanja',
       'grand total',
@@ -155,21 +160,45 @@ class ReceiptScannerService {
       'total transaksi',
       'total akhir',
       'total net',
+      'total netto',
       'total amount',
       'jumlah bayar',
       'total harga',
+      'total rupiah',
+      'jml rupiah',
+      'total keseluruhan',
+      'jumlah tagihan',
+      'jumlah total',
+      't0tal',
+      'tota1',
+      'to tal',
+      'tot',
+      'ttl',
     ];
 
-    // Secondary total keywords
+    // Secondary domain total keywords (Priority 2: SPBU, Restoran, Parkir, Apotek)
     final p2Keywords = [
+      'rupiah',
+      'rup1ah',
+      'rup!ah',
+      'total (rp)',
+      'tarif',
+      'biaya parkir',
+      'biaya tiket',
+      'biaya masuk',
+      'tarif tol',
+      'total resep',
+      'harga obat',
       'total',
       'subtotal',
       'sub total',
       'sub-total',
-      'jumlah tagihan',
-      'jumlah total',
       'netto',
       'tagihan',
+      'jml harga',
+      'harga total',
+      'harga jual',
+      'total order',
     ];
 
     // Tertiary keywords
@@ -180,6 +209,9 @@ class ReceiptScannerService {
       'debit',
       'qris',
       'bayar',
+      'harga',
+      'biaya',
+      'pembayaran',
     ];
 
     // Strategy 1: Scan line by line with contextual scoring
@@ -198,12 +230,12 @@ class ReceiptScannerService {
       for (final amt in amountsInLine) {
         if (!_isValidAmount(amt, line)) continue;
 
-        int score = 20; // baseline
+        int score = 25; // baseline
 
         if (p1Keywords.any((k) => lower.contains(k))) {
           score += 150;
         } else if (p2Keywords.any((k) => lower.contains(k))) {
-          score += 100;
+          score += 105;
         } else if (p3Keywords.any((k) => lower.contains(k))) {
           score += 45;
         }
@@ -230,7 +262,7 @@ class ReceiptScannerService {
         ));
       }
 
-      // 1.2 Check split lines: Line i has "TOTAL" but no number, number is on line i+1
+      // 1.2 Check split lines: Line i has keyword but no number, number is on line i+1
       final hasTotalKeyword = p1Keywords.any((k) => lower.contains(k)) ||
                               p2Keywords.any((k) => lower.contains(k));
 
@@ -242,7 +274,7 @@ class ReceiptScannerService {
           final nextAmounts = _extractNumbersFromText(nextLine);
           for (final amt in nextAmounts) {
             if (!_isValidAmount(amt, nextLine)) continue;
-            final score = 140; // High score for direct following line
+            final score = 145; // High score for direct following line
             candidates.add(_AmountCandidate(
               amount: amt,
               score: score,
@@ -251,6 +283,55 @@ class ReceiptScannerService {
             ));
           }
         }
+      }
+    }
+
+    // Strategy 1.3: Intelligent Tunai - Kembali Net Reconciliation
+    // Many warung/retail receipts don't have "TOTAL", only "TUNAI: 50.000" and "KEMBALI: 15.000"
+    // Total Belanja = TUNAI - KEMBALI = 35.000!
+    double? tenderAmount;
+    String? tenderLine;
+    double? changeAmount;
+    String? changeLine;
+
+    for (final line in lines) {
+      final l = line.toLowerCase();
+      if (l.contains('kembali') || l.contains('kembalian') || l.contains('change')) {
+        final nums = _extractNumbersFromText(line);
+        if (nums.isNotEmpty) {
+          changeAmount = nums.last;
+          changeLine = line;
+        }
+      } else if (l.contains('tunai') || l.contains('cash') || l.contains('bayar tunai') || l.contains('uang tunai')) {
+        if (!l.contains('kembali')) {
+          final nums = _extractNumbersFromText(line);
+          if (nums.isNotEmpty) {
+            tenderAmount = nums.last;
+            tenderLine = line;
+          }
+        }
+      }
+    }
+
+    if (tenderAmount != null && tenderAmount > 0) {
+      if (changeAmount != null && changeAmount > 0 && tenderAmount > changeAmount) {
+        final netPurchase = tenderAmount - changeAmount;
+        if (_isValidAmount(netPurchase, 'Net Calculation')) {
+          candidates.add(_AmountCandidate(
+            amount: netPurchase,
+            score: 185, // Highest score! Mathematical truth of net purchase
+            sourceLine: '$tenderLine minus $changeLine',
+            reason: 'Tunai ($tenderAmount) - Kembali ($changeAmount)',
+          ));
+        }
+      } else if (changeAmount == null || changeAmount == 0) {
+        // Exact cash payment (no change) e.g. "TUNAI: 25.000"
+        candidates.add(_AmountCandidate(
+          amount: tenderAmount,
+          score: 130,
+          sourceLine: tenderLine ?? 'TUNAI',
+          reason: 'Tunai tanpa kembalian (Exact Cash Payment)',
+        ));
       }
     }
 
@@ -277,7 +358,7 @@ class ReceiptScannerService {
                     if (_isValidAmount(amt, otherLine.text)) {
                       candidates.add(_AmountCandidate(
                         amount: amt,
-                        score: isP1 ? 160 : 130,
+                        score: isP1 ? 165 : 135,
                         sourceLine: '${textLine.text} [parallel] ${otherLine.text}',
                         reason: 'Horizontal block alignment',
                       ));
@@ -293,6 +374,35 @@ class ReceiptScannerService {
       debugPrint('[OCR] Bounding box alignment analysis skipped: $e');
     }
 
+    // Strategy 3: Multi-item line summation fallback (if receipt is torn or lacks total)
+    if (candidates.where((c) => c.score >= 100).isEmpty) {
+      double itemSum = 0;
+      int itemCount = 0;
+      for (final line in lines) {
+        final l = line.toLowerCase();
+        if (negativeKeywords.any((nk) => l.contains(nk))) continue;
+        if (p1Keywords.any((k) => l.contains(k))) continue;
+        if (p2Keywords.any((k) => l.contains(k))) continue;
+
+        final nums = _extractNumbersFromText(line);
+        if (nums.length == 1) {
+          final amt = nums.first;
+          if (amt >= 1000 && amt <= 1000000 && line.length >= 6) {
+            itemSum += amt;
+            itemCount++;
+          }
+        }
+      }
+      if (itemCount >= 2 && itemSum > 0 && itemSum <= 10000000) {
+        candidates.add(_AmountCandidate(
+          amount: itemSum,
+          score: 95,
+          sourceLine: 'Sum of $itemCount detected items',
+          reason: 'Sum of item lines fallback',
+        ));
+      }
+    }
+
     if (candidates.isEmpty) {
       debugPrint('[OCR] No high-confidence candidates found. Running fallback extraction.');
       // Fallback: Pick any valid number in the bottom half of the text
@@ -306,7 +416,7 @@ class ReceiptScannerService {
           if (_isValidAmount(n, line)) {
             candidates.add(_AmountCandidate(
               amount: n,
-              score: 30,
+              score: 35,
               sourceLine: line,
               reason: 'Bottom-up fallback',
             ));
@@ -325,7 +435,7 @@ class ReceiptScannerService {
     });
 
     final winner = candidates.first;
-    debugPrint('[OCR] Winner Amount: Rp ${winner.amount} (Score: ${winner.score}, Source: "${winner.sourceLine}")');
+    debugPrint('[OCR] Winner Amount: Rp ${winner.amount} (Score: ${winner.score}, Reason: ${winner.reason}, Source: "${winner.sourceLine}")');
     return winner.amount;
   }
 
@@ -475,7 +585,24 @@ class ReceiptScannerService {
   }
 
   String _detectPaymentMethod(String lowerAll) {
-    if (lowerAll.contains('qris')) return 'QRIS BCA';
+    if (lowerAll.contains('kembali') ||
+        lowerAll.contains('kembalian') ||
+        lowerAll.contains('harga tunai') ||
+        lowerAll.contains('bayar tunai') ||
+        lowerAll.contains('uang tunai') ||
+        lowerAll.contains('tunai') ||
+        lowerAll.contains('cash')) {
+      return 'Tunai (Cash)';
+    }
+
+    if (lowerAll.contains('qris')) {
+      if (lowerAll.contains('seabank')) return 'QRIS SeaBank';
+      if (lowerAll.contains('blu')) return 'QRIS blu BCA';
+      if (lowerAll.contains('gopay') || lowerAll.contains('gojek')) return 'GoPay QRIS';
+      if (lowerAll.contains('shopeepay') || lowerAll.contains('spay')) return 'ShopeePay QRIS';
+      return 'QRIS BCA';
+    }
+
     if (lowerAll.contains('gopay') || lowerAll.contains('gojek')) return 'GoPay QRIS';
     if (lowerAll.contains('shopeepay') || lowerAll.contains('shopee')) return 'ShopeePay QRIS';
     if (lowerAll.contains('ovo')) return 'OVO';
@@ -483,23 +610,61 @@ class ReceiptScannerService {
     if (lowerAll.contains('mandiri')) return 'Debit Mandiri';
     if (lowerAll.contains('bri')) return 'Debit BRI';
     if (lowerAll.contains('seabank')) return 'QRIS SeaBank';
-    if (lowerAll.contains('blu')) return 'blu by BCA';
-    if (lowerAll.contains('tunai') || lowerAll.contains('cash')) return 'Tunai (Cash)';
-    return 'QRIS BCA';
+    if (lowerAll.contains('blu')) return 'QRIS blu BCA';
+    if (lowerAll.contains('debit') || lowerAll.contains('edc')) return 'Debit BCA';
+
+    return 'Tunai (Cash)';
   }
 
   String _detectCategory(String merchant, String lowerAll) {
     final m = merchant.toLowerCase();
-    if (m.contains('indomaret') || m.contains('alfamart') || m.contains('alfamidi') || m.contains('superindo') || m.contains('hypermart') || lowerAll.contains('minimarket')) {
+    if (m.contains('indomaret') ||
+        m.contains('alfamart') ||
+        m.contains('alfamidi') ||
+        m.contains('superindo') ||
+        m.contains('hypermart') ||
+        m.contains('transmart') ||
+        m.contains('circle k') ||
+        m.contains('lawson') ||
+        lowerAll.contains('minimarket') ||
+        lowerAll.contains('supermarket')) {
       return 'Belanja Harian & Minimarket';
     }
-    if (m.contains('spbu') || m.contains('pertamina') || m.contains('shell')) {
+    if (m.contains('spbu') ||
+        m.contains('pertamina') ||
+        m.contains('shell') ||
+        lowerAll.contains('bensin') ||
+        lowerAll.contains('pertamax') ||
+        lowerAll.contains('pertalite') ||
+        lowerAll.contains('solar') ||
+        lowerAll.contains('parkir') ||
+        lowerAll.contains('tol') ||
+        lowerAll.contains('tarif parkir')) {
       return 'Transportasi & Bahan Bakar';
     }
-    if (m.contains('kfc') || m.contains('mcdonald') || m.contains('starbucks') || m.contains('kopi') || m.contains('cafe') || m.contains('mie gacoan') || m.contains('hokben') || m.contains('solaria')) {
+    if (m.contains('kfc') ||
+        m.contains('mcdonald') ||
+        m.contains('starbucks') ||
+        m.contains('kopi') ||
+        m.contains('cafe') ||
+        m.contains('mie gacoan') ||
+        m.contains('hokben') ||
+        m.contains('solaria') ||
+        m.contains('warung') ||
+        m.contains('resto') ||
+        m.contains('rumah makan') ||
+        lowerAll.contains('makanan') ||
+        lowerAll.contains('minuman')) {
       return 'Restoran & Kuliner';
     }
-    if (m.contains('apotek') || m.contains('kimia farma') || m.contains('k-24') || m.contains('guardian') || m.contains('watsons')) {
+    if (m.contains('apotek') ||
+        m.contains('kimia farma') ||
+        m.contains('k-24') ||
+        m.contains('guardian') ||
+        m.contains('watsons') ||
+        m.contains('century') ||
+        lowerAll.contains('obat') ||
+        lowerAll.contains('resep')) {
       return 'Kesehatan & Farmasi';
     }
     return 'Konsumsi & F&B';
