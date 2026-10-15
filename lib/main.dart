@@ -69,11 +69,12 @@ class ReconxApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([AuthService(), ThemeService(), LanguageService()]),
+      listenable: Listenable.merge([AuthService(), ThemeService(), LanguageService(), BiometricService()]),
       builder: (context, _) {
         final authService = AuthService();
         final bioService = BiometricService();
         final themeService = ThemeService();
+        final langService = LanguageService();
 
         Widget initialScreen;
         if (!authService.isAuthenticated) {
@@ -85,11 +86,13 @@ class ReconxApp extends StatelessWidget {
         }
 
         return MaterialApp(
+          key: ValueKey('reconx_app_${themeService.themeMode}_${langService.currentLanguage}'),
           title: 'Reconx',
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           darkTheme: AppTheme.darkTheme,
           themeMode: themeService.themeMode,
+          locale: Locale(langService.currentLanguage),
           home: initialScreen,
         );
       },

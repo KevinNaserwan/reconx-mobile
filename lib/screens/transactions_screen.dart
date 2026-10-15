@@ -63,7 +63,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     final buffer = StringBuffer();
     buffer.writeln('ID,Waktu,Merchant,Aplikasi,Kanal,Nominal,Status');
     for (final tx in list) {
-      buffer.writeln('"${tx.id}","${dateFormat.format(tx.timestamp)}","${tx.merchant}","${tx.appName}","${tx.channel}",${tx.amount},"${tx.status}"');
+      buffer.writeln('"${tx.id}","${dateFormat.format(tx.timestampWib)} WIB","${tx.merchant}","${tx.appName}","${tx.channel}",${tx.amount},"${tx.status}"');
     }
 
     Clipboard.setData(ClipboardData(text: buffer.toString()));
@@ -191,7 +191,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               _buildDetailRow('ID Transaksi', tx.id),
               _buildDetailRow('Sumber / Aplikasi', tx.appName),
               _buildDetailRow('Kanal Pembayaran', tx.channel),
-              _buildDetailRow('Waktu Transaksi', dateFormat.format(tx.timestamp)),
+              _buildDetailRow('Waktu Transaksi (WIB)', '${dateFormat.format(tx.timestampWib)} WIB'),
               _buildDetailRow('Catatan Raw', tx.content),
               const SizedBox(height: 16),
               SizedBox(
@@ -277,7 +277,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
         ],
       ),
       body: ListenableBuilder(
-        listenable: ApiSyncService(),
+        listenable: Listenable.merge([ApiSyncService(), LanguageService()]),
         builder: (context, _) {
           final history = ApiSyncService().history;
 
@@ -458,7 +458,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                         ),
                                         const SizedBox(height: 3),
                                         Text(
-                                          '${tx.appName} • ${dateFormat.format(tx.timestamp)}',
+                                          '${tx.appName} • ${dateFormat.format(tx.timestampWib)} WIB',
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11,
                                             color: AppTheme.getTextSecondary(context),

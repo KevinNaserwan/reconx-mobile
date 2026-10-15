@@ -355,7 +355,42 @@ class ApiSyncService extends ChangeNotifier {
     String? notificationKey,
   }) async {
     final user = AuthService().currentUser;
-    final fullText = '$title $content';
+    final fullText = '$title $content'.toLowerCase();
+
+    // STRICT FILTER 1: Exclude non-financial promotional noise, OTPs, and background services
+    if (fullText.contains('promo') ||
+        fullText.contains('voucher') ||
+        fullText.contains('diskon') ||
+        fullText.contains('cashback s/d') ||
+        fullText.contains('flash sale') ||
+        fullText.contains('klaim') ||
+        fullText.contains('keyboard aktif') ||
+        fullText.contains('latar belakang') ||
+        fullText.contains('sesi berakhir') ||
+        fullText.contains('kode otp') ||
+        fullText.contains('jangan berikan kode') ||
+        fullText.contains('tips keamanan')) {
+      debugPrint('[ApiSyncService] Ignored non-financial promotional notification: $title');
+      return null;
+    }
+
+    final candidateAmount = _extractAmountClientSide('$title $content');
+
+    // STRICT FILTER 2: Must either have a detectable amount > 0 OR explicit transaction success keywords
+    final hasTxKeyword = fullText.contains('berhasil') ||
+                         fullText.contains('sukses') ||
+                         fullText.contains('qris') ||
+                         fullText.contains('transfer') ||
+                         fullText.contains('pembayaran') ||
+                         fullText.contains('debit') ||
+                         fullText.contains('kredit') ||
+                         fullText.contains('top up') ||
+                         fullText.contains('terima uang');
+
+    if (candidateAmount <= 0 && !hasTxKeyword) {
+      debugPrint('[ApiSyncService] Notification lacks monetary value and transaction keywords. Skipping.');
+      return null;
+    }
 
     // DEDUPLICATION GUARD 1: Key Check (exact notification instance)
     final uniqueKey = notificationKey ?? '${appPackage}_${postTime ?? 0}_${title}_$content'.hashCode.toString();
@@ -365,7 +400,6 @@ class ApiSyncService extends ChangeNotifier {
     }
 
     // DEDUPLICATION GUARD 2: Rapid Duplicate Prevention (Same app + same amount within 60s)
-    final candidateAmount = _extractAmountClientSide(fullText);
     final now = DateTime.now();
     final isRecentDuplicate = _history.any((tx) {
       if (tx.packageName.toLowerCase() == appPackage.toLowerCase() &&
@@ -412,11 +446,18 @@ class ApiSyncService extends ChangeNotifier {
         final data = jsonDecode(res.body);
 
         final item = SyncedTransaction.fromJson(data);
-        _history.insert(0, item);
-        _recalculateTodayMetrics();
-        await _saveHistoryToPrefs();
-        _newTransactionController.add(item);
-        notifyListeners();
+        // Verify this transaction isn't already stored in local history
+        final alreadyInHistory = _history.any((tx) =>
+            tx.id == item.id ||
+            (data['transactionRef'] != null && tx.id == data['transactionRef']));
+
+        if (!alreadyInHistory) {
+          _history.insert(0, item);
+          _recalculateTodayMetrics();
+          await _saveHistoryToPrefs();
+          _newTransactionController.add(item);
+          notifyListeners();
+        }
         return item;
       }
     } catch (e) {
@@ -424,7 +465,11 @@ class ApiSyncService extends ChangeNotifier {
     }
 
     // Client-side fallback if server is unreachable
-    final fallbackAmount = _extractAmountClientSide(fullText);
+    final fallbackAmount = candidateAmount;
+    if (fallbackAmount <= 0 && !hasTxKeyword) {
+      return null;
+    }
+
     final fallbackItem = SyncedTransaction(
       id: 'MOB-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}',
       appName: appName ?? _resolveAppName(appPackage),
@@ -432,7 +477,7 @@ class ApiSyncService extends ChangeNotifier {
       title: title,
       content: content,
       amount: fallbackAmount,
-      merchant: _extractMerchantClientSide(fullText),
+      merchant: _extractMerchantClientSide('$title $content'),
       channel: 'OFFLINE_QUEUED',
       timestamp: DateTime.now(),
       status: 'QUEUED_LOCAL',
@@ -466,26 +511,36 @@ class ApiSyncService extends ChangeNotifier {
   }
 
   double _extractAmountClientSide(String text) {
-    // 1. Explicit Rp / IDR pattern (e.g. "rp 10.500", "Rp 25.000", "Rp.10.500,00", "IDR 150.000")
-    final reg = RegExp(r'(?:Rp|IDR)\s*[:.]?\s*([0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{2})?|[0-9]+)', caseSensitive: false);
-    final match = reg.firstMatch(text);
-    if (match != null) {
-      final raw = match.group(1)!;
-      final cleaned = raw.replaceAll(RegExp(r'[^0-9]'), '');
-      final val = double.tryParse(cleaned);
-      if (val != null && val > 0) return val;
+    // 1. Explicit Rp / IDR pattern (e.g. "Rp 10.500,00", "Rp 10,500.00", "Rp 10.500", "IDR 250.000")
+    final rpReg = RegExp(r'(?:Rp|IDR)\s*[:.]?\s*([0-9.,]+)', caseSensitive: false);
+    final rpMatch = rpReg.firstMatch(text);
+    if (rpMatch != null) {
+      final raw = rpMatch.group(1)!;
+      final parsed = _parseCleanNumber(raw);
+      if (parsed > 0) return parsed;
     }
 
-    // 2. Generic thousands with dot/comma (e.g. "10.500", "150.000")
-    final numReg = RegExp(r'(?:^|[^\d])([0-9]{1,3}(?:[.,][0-9]{3})+)(?:[^\d]|$)', caseSensitive: false);
+    // 2. Generic thousands with dot or comma (e.g. "sebesar 10.500", "150.000")
+    final numReg = RegExp(r'(?:^|[^\d])([0-9]{1,3}(?:[.,][0-9]{3})+(?:[.,][0-9]{2})?|[0-9]{4,})(?:[^\d]|$)', caseSensitive: false);
     final numMatch = numReg.firstMatch(text);
     if (numMatch != null) {
-      final cleaned = numMatch.group(1)!.replaceAll(RegExp(r'[^0-9]'), '');
-      final val = double.tryParse(cleaned);
-      if (val != null && val > 0) return val;
+      final raw = numMatch.group(1)!;
+      final parsed = _parseCleanNumber(raw);
+      if (parsed > 0) return parsed;
     }
 
     return 0.0;
+  }
+
+  double _parseCleanNumber(String raw) {
+    var s = raw.trim();
+    // If ends with ,00 or .00 (cents/sen)
+    if (s.endsWith(',00') || s.endsWith('.00')) {
+      s = s.substring(0, s.length - 3);
+    }
+    // Remove any remaining non-digit
+    s = s.replaceAll(RegExp(r'[^0-9]'), '');
+    return double.tryParse(s) ?? 0.0;
   }
 
   String _extractMerchantClientSide(String text) {
@@ -493,7 +548,7 @@ class ApiSyncService extends ChangeNotifier {
     if (lower.contains('indomaret')) return 'Indomaret';
     if (lower.contains('alfamart')) return 'Alfamart';
     if (lower.contains('alfamidi')) return 'Alfamidi';
-    if (lower.contains('superindo')) return 'Super Indo';
+    if (lower.contains('superindo') || lower.contains('super indo')) return 'Super Indo';
     if (lower.contains('hypermart')) return 'Hypermart';
     if (lower.contains('starbucks')) return 'Starbucks Coffee';
     if (lower.contains('mcdonald') || lower.contains('mcd')) return "McDonald's";

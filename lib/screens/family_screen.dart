@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
+import '../services/language_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_avatar.dart';
 
@@ -10,12 +11,15 @@ class FamilyScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = AuthService().currentUser;
-    final familyName = user?.familyName.isNotEmpty == true ? user!.familyName : 'Keluarga Anda';
-    final inviteCode = user?.familyInviteCode.isNotEmpty == true ? user!.familyInviteCode : 'FAM-KVN-8821';
-    final isDark = AppTheme.isDark(context);
+    return ListenableBuilder(
+      listenable: Listenable.merge([LanguageService(), AuthService()]),
+      builder: (context, _) {
+        final user = AuthService().currentUser;
+        final familyName = user?.familyName.isNotEmpty == true ? user!.familyName : 'Keluarga Anda';
+        final inviteCode = user?.familyInviteCode.isNotEmpty == true ? user!.familyInviteCode : 'FAM-KVN-8821';
+        final isDark = AppTheme.isDark(context);
 
-    return Scaffold(
+        return Scaffold(
       backgroundColor: AppTheme.getBg(context),
       appBar: AppBar(
         backgroundColor: AppTheme.getCard(context),
@@ -337,6 +341,8 @@ class FamilyScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+      },
     );
   }
 

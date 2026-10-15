@@ -31,6 +31,14 @@ if os.path.exists(manifest_path):
     if 'ReconXNotificationListener' not in c:
         c = c.replace('</application>', srv + '    </application>', 1)
     
+    ocr_meta = '''
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="ocr" />
+'''
+    if 'com.google.mlkit.vision.DEPENDENCIES' not in c:
+        c = c.replace('</application>', ocr_meta + '    </application>', 1)
+
     import re
     c = re.sub(r'android:label="[^"]*"', 'android:label="Reconx"', c)
     with open(manifest_path, 'w') as f:

@@ -78,46 +78,51 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = AppTheme.isDark(context);
+    return ListenableBuilder(
+      listenable: LanguageService(),
+      builder: (context, _) {
+        final isDark = AppTheme.isDark(context);
 
-    return Scaffold(
-      backgroundColor: AppTheme.getBg(context),
-      body: _buildBody(),
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.only(left: 14, right: 14, bottom: 12),
-        decoration: BoxDecoration(
-          color: isDark ? AppTheme.darkCard : Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(
-            color: isDark ? AppTheme.darkBorder : const Color(0xFFE2E8F0),
-            width: 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: isDark
-                  ? Colors.black.withOpacity(0.4)
-                  : const Color(0xFF0F172A).withOpacity(0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(0, Icons.grid_view_rounded, LanguageService().tr('nav_home')),
-                _buildNavItem(1, Icons.receipt_long_rounded, LanguageService().tr('nav_mutasi')),
-                _buildCenterScanButton(),
-                _buildNavItem(3, Icons.family_restroom_rounded, LanguageService().tr('nav_family')),
-                _buildNavItem(4, Icons.person_rounded, LanguageService().tr('nav_account')),
+        return Scaffold(
+          backgroundColor: AppTheme.getBg(context),
+          body: _buildBody(),
+          bottomNavigationBar: Container(
+            margin: const EdgeInsets.only(left: 14, right: 14, bottom: 12),
+            decoration: BoxDecoration(
+              color: isDark ? AppTheme.darkCard : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: isDark ? AppTheme.darkBorder : const Color(0xFFE2E8F0),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isDark
+                      ? Colors.black.withOpacity(0.4)
+                      : const Color(0xFF0F172A).withOpacity(0.08),
+                  blurRadius: 20,
+                  offset: const Offset(0, 6),
+                ),
               ],
             ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _buildNavItem(0, Icons.grid_view_rounded, LanguageService().tr('nav_home')),
+                    _buildNavItem(1, Icons.receipt_long_rounded, LanguageService().tr('nav_mutasi')),
+                    _buildCenterScanButton(),
+                    _buildNavItem(3, Icons.family_restroom_rounded, LanguageService().tr('nav_family')),
+                    _buildNavItem(4, Icons.person_rounded, LanguageService().tr('nav_account')),
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

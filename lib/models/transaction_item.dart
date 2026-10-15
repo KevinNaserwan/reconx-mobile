@@ -23,6 +23,8 @@ class SyncedTransaction {
     required this.status,
   });
 
+  DateTime get timestampWib => timestamp.toUtc().add(const Duration(hours: 7));
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'appName': appName,

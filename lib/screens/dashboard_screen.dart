@@ -559,7 +559,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    '${item.appName} • ${DateFormat('HH:mm').format(item.timestamp)}',
+                                    '${item.appName} • ${DateFormat('HH:mm').format(item.timestampWib)} WIB',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
                                       color: AppTheme.getTextSecondary(context),

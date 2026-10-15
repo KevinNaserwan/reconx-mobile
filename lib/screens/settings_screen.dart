@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/api_sync_service.dart';
@@ -311,15 +312,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = AuthService().currentUser;
-    final photoUrl = user?.photoUrl;
-    final initial = (user != null && user.name.isNotEmpty) ? user.name[0].toUpperCase() : 'K';
-    final syncService = ApiSyncService();
-    final themeService = ThemeService();
-    final lang = LanguageService();
-    final isDark = AppTheme.isDark(context);
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        LanguageService(),
+        ThemeService(),
+        ApiSyncService(),
+        AuthService(),
+        BiometricService(),
+      ]),
+      builder: (context, _) {
+        final user = AuthService().currentUser;
+        final photoUrl = user?.photoUrl;
+        final syncService = ApiSyncService();
+        final themeService = ThemeService();
+        final lang = LanguageService();
+        final isDark = AppTheme.isDark(context);
 
-    return Scaffold(
+        return Scaffold(
       backgroundColor: AppTheme.getBg(context),
       appBar: AppBar(
         backgroundColor: AppTheme.getCard(context),
@@ -774,6 +783,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+      },
+    );
   }
 
   Widget _buildOptionItem({
@@ -782,8 +793,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required VoidCallback onTap,
   }) {
     return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+          setState(() {});
+        },
+        borderRadius: BorderRadius.circular(10),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
@@ -816,8 +832,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required VoidCallback onTap,
   }) {
     return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+          setState(() {});
+        },
+        borderRadius: BorderRadius.circular(10),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
@@ -874,7 +895,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             value: enabled,
             activeColor: AppTheme.primaryEmerald,
             onChanged: (val) {
+              HapticFeedback.selectionClick();
               syncService.toggleAppFilter(key, val);
+              setState(() {});
             },
           ),
         ],

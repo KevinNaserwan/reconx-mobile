@@ -214,56 +214,17 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
     }
 
     // Run intelligent Indonesian MLKit OCR parser
-    final result = await ReceiptScannerService().parseReceiptImage(photoPath);
-
-    if (result == null) {
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: AppTheme.dangerRose,
-            content: Row(
-              children: [
-                const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Nota belum terbaca otomatis. Ingin lengkapi nominal secara manual?',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600),
-                  ),
-                ),
-              ],
-            ),
-            action: SnackBarAction(
-              label: 'Isi Manual',
-              textColor: Colors.white,
-              onPressed: () {
-                final manualResult = ReceiptScanResult(
-                  imagePath: photoPath!,
-                  merchant: 'Merchant / Toko',
-                  amount: 0.0,
-                  date: DateTime.now(),
-                  paymentMethod: 'QRIS BCA',
-                  category: 'Konsumsi & F&B',
-                  detectedItems: ['Pengeluaran Fisik'],
-                  confidenceScore: 0.5,
-                );
-                _merchantController.text = manualResult.merchant;
-                _amountController.text = '';
-                setState(() {
-                  _scanResult = manualResult;
-                  _isProcessing = false;
-                });
-              },
-            ),
-            duration: const Duration(seconds: 6),
-          ),
+    final result = await ReceiptScannerService().parseReceiptImage(photoPath) ??
+        ReceiptScanResult(
+          imagePath: photoPath,
+          merchant: 'Merchant / Toko',
+          amount: 0.0,
+          date: DateTime.now(),
+          paymentMethod: 'QRIS BCA',
+          category: 'Konsumsi & F&B',
+          detectedItems: ['Pengeluaran Fisik'],
+          confidenceScore: 0.5,
         );
-      }
-      return;
-    }
 
     _merchantController.text = result.merchant;
     _amountController.text = result.amount > 0 ? result.amount.toInt().toString() : '';
@@ -330,11 +291,15 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (_scanResult != null) {
-      return _buildResultScaffold();
-    }
-
-    return _buildGoPayStyleScannerView();
+    return ListenableBuilder(
+      listenable: LanguageService(),
+      builder: (context, _) {
+        if (_scanResult != null) {
+          return _buildResultScaffold();
+        }
+        return _buildGoPayStyleScannerView();
+      },
+    );
   }
 
   /// GoPay / DANA styled Camera Viewfinder UI

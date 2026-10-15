@@ -89,6 +89,12 @@ class ReconXNotificationListener : NotificationListenerService() {
         val notification = sbn.notification ?: return false
         val extras = notification.extras ?: return false
 
+        // Skip persistent ongoing notifications (e.g. background service status, keyboards, players)
+        val flags = notification.flags
+        if ((flags and Notification.FLAG_ONGOING_EVENT) != 0) {
+            return false
+        }
+
         // Deduplication Key: combination of packageName, notification ID, and postTime
         val notifKey = "${packageName}_${sbn.id}_${sbn.postTime}"
         if (processedKeys.contains(notifKey)) {
@@ -104,6 +110,7 @@ class ReconXNotificationListener : NotificationListenerService() {
         val subText = extras.getCharSequence(Notification.EXTRA_SUB_TEXT)?.toString()?.trim() ?: ""
         val summaryText = extras.getCharSequence(Notification.EXTRA_SUMMARY_TEXT)?.toString()?.trim() ?: ""
         val infoText = extras.getCharSequence(Notification.EXTRA_INFO_TEXT)?.toString()?.trim() ?: ""
+        val ticker = notification.tickerText?.toString()?.trim() ?: ""
 
         val textLines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
         val joinedLines = textLines?.filterNotNull()?.joinToString(" ") { it.toString().trim() } ?: ""
@@ -118,6 +125,7 @@ class ReconXNotificationListener : NotificationListenerService() {
         if (subText.isNotEmpty() && !text.contains(subText)) contentPieces.add(subText)
         if (summaryText.isNotEmpty() && summaryText != effectiveTitle) contentPieces.add(summaryText)
         if (infoText.isNotEmpty()) contentPieces.add(infoText)
+        if (ticker.isNotEmpty() && !contentPieces.contains(ticker)) contentPieces.add(ticker)
 
         val effectiveContent = if (contentPieces.isNotEmpty()) {
             contentPieces.joinToString(" ")
@@ -127,7 +135,24 @@ class ReconXNotificationListener : NotificationListenerService() {
 
         val combinedSearch = "$effectiveTitle $effectiveContent $packageName".lowercase()
 
-        // 2. Target package recognition (both exact and substring matching for Indonesian financial apps)
+        // 2. Reject non-financial promotional noise, OTPs, and background services
+        val isNonFinancialPromo = combinedSearch.contains("promo") ||
+                                  combinedSearch.contains("voucher") ||
+                                  combinedSearch.contains("diskon") ||
+                                  combinedSearch.contains("cashback s/d") ||
+                                  combinedSearch.contains("flash sale") ||
+                                  combinedSearch.contains("klaim") ||
+                                  combinedSearch.contains("keyboard aktif") ||
+                                  combinedSearch.contains("berjalan di latar belakang") ||
+                                  combinedSearch.contains("sesi berakhir") ||
+                                  combinedSearch.contains("kode otp") ||
+                                  combinedSearch.contains("jangan berikan kode") ||
+                                  combinedSearch.contains("tips keamanan")
+        if (isNonFinancialPromo) {
+            return false
+        }
+
+        // 3. Target package recognition (both exact and substring matching for Indonesian financial apps)
         val isTargetApp = TARGET_PACKAGES.any { packageName.contains(it) } ||
                           packageName.contains("bcadigital") ||
                           packageName.contains("blu") ||
@@ -147,9 +172,11 @@ class ReconXNotificationListener : NotificationListenerService() {
                           packageName.contains("jenius") ||
                           packageName.contains("jago")
 
-        val hasFinancialKeywords = combinedSearch.contains("rp") ||
-                                   combinedSearch.contains("idr") ||
-                                   combinedSearch.contains("berhasil") ||
+        val hasMonetaryAmount = combinedSearch.contains("rp") ||
+                                combinedSearch.contains("idr") ||
+                                Regex("""\b\d{1,3}(?:[.,]\d{3})+\b""").containsMatchIn(combinedSearch)
+
+        val hasTransactionAction = combinedSearch.contains("berhasil") ||
                                    combinedSearch.contains("sukses") ||
                                    combinedSearch.contains("qris") ||
                                    combinedSearch.contains("bayar") ||
@@ -167,20 +194,12 @@ class ReconXNotificationListener : NotificationListenerService() {
                                    combinedSearch.contains("masuk") ||
                                    combinedSearch.contains("payment")
 
-        if (isTargetApp || hasFinancialKeywords) {
-            Log.i(TAG, "Financial Notification Processed! pkg=$packageName key=$notifKey title=$effectiveTitle content=$effectiveContent")
+        val isFinancial = (hasMonetaryAmount && hasTransactionAction) || 
+                          (isTargetApp && hasMonetaryAmount) ||
+                          (isTargetApp && (combinedSearch.contains("qris") || combinedSearch.contains("berhasil") || combinedSearch.contains("transfer")))
 
-            // Mark key as processed in deduplication set
-            processedKeys.add(notifKey)
-            if (processedKeys.size > 2000) {
-                val iterator = processedKeys.iterator()
-                for (i in 0 until 500) {
-                    if (iterator.hasNext()) {
-                        iterator.next()
-                        iterator.remove()
-                    }
-                }
-            }
+        if (isFinancial) {
+            Log.i(TAG, "Financial Notification Processed! pkg=$packageName key=$notifKey title=$effectiveTitle content=$effectiveContent")
 
             val payload = mapOf(
                 "packageName" to packageName,
@@ -190,9 +209,24 @@ class ReconXNotificationListener : NotificationListenerService() {
                 "notificationKey" to notifKey
             )
 
-            // Stream directly into Flutter Dart runtime
-            notificationCallback?.invoke(payload)
-            return true
+            if (notificationCallback != null) {
+                // Mark key as processed only when actually delivered to Flutter
+                processedKeys.add(notifKey)
+                if (processedKeys.size > 2000) {
+                    val iterator = processedKeys.iterator()
+                    for (i in 0 until 500) {
+                        if (iterator.hasNext()) {
+                            iterator.next()
+                            iterator.remove()
+                        }
+                    }
+                }
+                notificationCallback?.invoke(payload)
+                return true
+            } else {
+                Log.w(TAG, "Notification listener received data but Flutter callback is not yet set. Will re-sync on startup.")
+                return false
+            }
         }
         return false
     }
