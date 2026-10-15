@@ -82,12 +82,28 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Flutter Analyze
+        run: flutter analyze
+
       - name: Build Release APK
         id: build_step
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError"
         run: |
-          flutter build apk --release --no-tree-shake-icons
+          flutter build apk --release --no-tree-shake-icons --verbose > build.log 2>&1 || {
+            echo "::error::Flutter build apk failed!"
+            echo "==================== BUILD ERROR TAIL ===================="
+            tail -n 250 build.log
+            exit 1
+          }
+
+      - name: Upload Build Log Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-build-log
+          path: build.log
+          retention-days: 7
 
       - name: Verify Build & Prepare Distribution
         run: |
@@ -119,6 +135,7 @@ jobs:
           name: "ReconX Mobile Companion v1.1.0"
           draft: false
           prerelease: false
+          overwrite: true
           body: |
             ### ReconX Mobile Companion v1.1.0 Release
             
