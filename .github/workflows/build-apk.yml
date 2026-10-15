@@ -114,46 +114,45 @@ jobs:
           fi
           echo "Found APK: $APK_FILE"
           mkdir -p dist
+          cp "$APK_FILE" dist/Reconx-v1.3.6.apk
           cp "$APK_FILE" dist/Reconx-v1.3.5.apk
           cp "$APK_FILE" dist/Reconx-v1.3.4.apk
           cp "$APK_FILE" dist/Reconx-v1.3.3.apk
           cp "$APK_FILE" dist/Reconx-v1.3.2.apk
-          cp "$APK_FILE" dist/Reconx-v1.3.1.apk
-          cp "$APK_FILE" dist/Reconx-v1.3.0.apk
           ls -lh dist/
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Reconx-v1.3.5-APK
-          path: dist/Reconx-v1.3.5.apk
+          name: Reconx-v1.3.6-APK
+          path: dist/Reconx-v1.3.6.apk
           retention-days: 30
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.3.5
-          name: "Reconx Android v1.3.5 (blu BCA & Banking Notification Interceptor Fix)"
+          tag_name: v1.3.6
+          name: "Reconx Android v1.3.6 (Tray Notification Sync & Anti-Duplicate Guard)"
           draft: false
           prerelease: false
           overwrite: true
           body: |
-            ### Reconx Android v1.3.5 Official Release
+            ### Reconx Android v1.3.6 Official Release
 
-            Perbaikan mutakhir untuk intersepsi otomatis notifikasi perbankan & QRIS:
+            Fitur baru pemindaian notifikasi aktif di status bar & proteksi anti-duplikasi:
 
-            - ⚡ **Full Support blu by BCA Digital (`com.bcadigital.blu`):** Memperbaiki deteksi package name resmi blu BCA serta varian sub-packages terkait.
-            - 📩 **Android BigTextStyle & Expanded Text Extractor:** Membaca data lengkap notifikasi perbankan (termasuk `EXTRA_BIG_TEXT`, `EXTRA_TEXT_LINES`, dan `EXTRA_TITLE_BIG`) sehingga nominal dan nama merchant pada transaksi QRIS tidak terpotong atau hilang.
-            - 🛡️ **Actionable Permission Status & Panduan Android 13/14+:** Menambahkan banner peringatan langsung di Dashboard jika Akses Notifikasi Android belum aktif atau terblokir "Setelan Dibatasi" (*Restricted Settings*), lengkap dengan tombol pintas ke setelan sistem HP.
-            - 💰 **Indonesian Currency Regex Upgrade:** Parser teks sisi client dan server diperkuat untuk membaca format variatif nominal pembayaran (`Rp 25.000`, `Rp25.000,00`, `IDR 50.000`, dll) secara presisi.
+            - 📥 **Active Notification Tray Scanner (`getActiveNotifications`):** Mampu membaca riwayat notifikasi transaksi yang masih bertengger di laci/status bar HP (belum di-close/swipe), sehingga transaksi yang sudah lewat tetap dapat tercatat otomatis saat aplikasi dibuka atau di-refresh.
+            - 🛡️ **Zero Duplicate Protection (Multi-Layer Deduplication Guard):** Dilengkapi sistem pencegahan duplikasi ganda berlapis (Kombinasi Key Notifikasi Android + Hashes Cache + Window Transaksi Sama <60 detik) sehingga dijamin **TIDAK AKAN PERNAH** tercatat dobel/ganda.
+            - 🔄 **Pull-to-Refresh & Sync Button:** Cukup tarik layar Beranda ke bawah (*swipe down pull-to-refresh*) atau tekan ikon sinkronisasi di pojok kanan atas untuk memindai ulang notifikasi HP kapan saja.
+            - ⚡ **blu BCA & Banking BigText Support:** Dukungan penuh untuk format pesan panjang transaksi QRIS blu by BCA Digital (`com.bcadigital.blu`), myBCA, Livin', BRImo, GoPay, dan OVO.
 
             #### 📥 Download Langsung:
-            Download file **`Reconx-v1.3.5.apk`** di bawah ini dan pasang langsung di HP Android Anda.
+            Download file **`Reconx-v1.3.6.apk`** di bawah ini dan pasang langsung di HP Android Anda.
           files: |
+            dist/Reconx-v1.3.6.apk
             dist/Reconx-v1.3.5.apk
             dist/Reconx-v1.3.4.apk
             dist/Reconx-v1.3.3.apk
-            dist/Reconx-v1.3.2.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

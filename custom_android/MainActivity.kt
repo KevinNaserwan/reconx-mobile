@@ -1,6 +1,8 @@
 package com.reconx.agent.reconx_mobile
 
+import android.content.ComponentName
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.provider.Settings
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -16,7 +18,7 @@ class MainActivity : FlutterFragmentActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        // MethodChannel: Check and request Notification Access Permission
+        // MethodChannel: Check, request Notification Access, and sync active notifications
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "isPermissionGranted" -> {
@@ -28,6 +30,21 @@ class MainActivity : FlutterFragmentActivity() {
                     val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
                     startActivity(intent)
                     result.success(true)
+                }
+                "syncActiveNotifications" -> {
+                    val count = ReconXNotificationListener.instance?.syncActiveNotifications() ?: 0
+                    result.success(count)
+                }
+                "rebindListenerService" -> {
+                    try {
+                        val componentName = ComponentName(this, ReconXNotificationListener::class.java)
+                        val pm = packageManager
+                        pm.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
+                        pm.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
                 }
                 else -> result.notImplemented()
             }
@@ -43,6 +60,8 @@ class MainActivity : FlutterFragmentActivity() {
                             eventSink?.success(payload)
                         }
                     }
+                    // Proactively scan active tray notifications when listener channel opens
+                    ReconXNotificationListener.instance?.syncActiveNotifications()
                 }
 
                 override fun onCancel(arguments: Any?) {

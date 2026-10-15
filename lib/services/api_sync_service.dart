@@ -37,6 +37,9 @@ class ApiSyncService extends ChangeNotifier {
   final List<SyncedTransaction> _history = [];
   List<SyncedTransaction> get history => List.unmodifiable(_history);
 
+  final Set<String> _processedNotificationKeys = {};
+  Set<String> get processedNotificationKeys => Set.unmodifiable(_processedNotificationKeys);
+
   // Bank & E-Wallet Interception Filter Settings
   Map<String, bool> _appFilters = {
     'bca': true,
@@ -77,6 +80,17 @@ class ApiSyncService extends ChangeNotifier {
       }
     }
 
+    // Load deduplication keys
+    final keysJson = prefs.getString('reconx_processed_keys');
+    if (keysJson != null) {
+      try {
+        final List<dynamic> decoded = jsonDecode(keysJson);
+        _processedNotificationKeys.addAll(decoded.map((e) => e.toString()));
+      } catch (e) {
+        debugPrint('Failed to load processed keys: $e');
+      }
+    }
+
     // Load persisted real transaction history
     _history.clear();
     final savedHistoryJson = prefs.getString('reconx_saved_history');
@@ -96,7 +110,17 @@ class ApiSyncService extends ChangeNotifier {
 
     await checkPermission();
     _startNativeListener();
+    await syncActiveNotifications();
     notifyListeners();
+  }
+
+  Future<void> _saveProcessedKeys() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final list = _processedNotificationKeys.toList();
+      final toSave = list.length > 500 ? list.sublist(list.length - 500) : list;
+      await prefs.setString('reconx_processed_keys', jsonEncode(toSave));
+    } catch (_) {}
   }
 
   Future<void> toggleAppFilter(String key, bool enabled) async {
@@ -180,6 +204,7 @@ class ApiSyncService extends ChangeNotifier {
             final pkg = map['packageName'] ?? '';
             final ttl = map['title'] ?? '';
             final cnt = map['content'] ?? '';
+            final key = map['notificationKey'] ?? '';
 
             // Check if this app/bank notification is allowed by user's filter
             if (!isNotificationAllowed(pkg, ttl, cnt)) {
@@ -192,6 +217,7 @@ class ApiSyncService extends ChangeNotifier {
               title: ttl,
               content: cnt,
               postTime: map['postTime'],
+              notificationKey: key.isNotEmpty ? key : null,
             );
           }
         },
@@ -218,6 +244,28 @@ class ApiSyncService extends ChangeNotifier {
     try {
       await _methodChannel.invokeMethod('openNotificationSettings');
     } catch (_) {}
+  }
+
+  /// Scans all active notifications currently sitting in the Android notification shade/tray
+  Future<int> syncActiveNotifications() async {
+    try {
+      final res = await _methodChannel.invokeMethod('syncActiveNotifications');
+      debugPrint('[ApiSyncService] syncActiveNotifications returned: $res');
+      return (res is int) ? res : 0;
+    } catch (e) {
+      debugPrint('[ApiSyncService] Error scanning active notifications: $e');
+      return 0;
+    }
+  }
+
+  /// Re-binds NotificationListenerService if OS unbinded it
+  Future<bool> rebindListenerService() async {
+    try {
+      final res = await _methodChannel.invokeMethod('rebindListenerService');
+      return res == true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> setServiceActive(bool active) async {
@@ -295,8 +343,39 @@ class ApiSyncService extends ChangeNotifier {
     required String content,
     String? appName,
     int? postTime,
+    String? notificationKey,
   }) async {
     final user = AuthService().currentUser;
+
+    // DEDUPLICATION GUARD 1: Key Check (exact notification instance)
+    final uniqueKey = notificationKey ?? '${appPackage}_${postTime ?? 0}_${title}_$content'.hashCode.toString();
+    if (_processedNotificationKeys.contains(uniqueKey)) {
+      debugPrint('[Deduplication] Notification key $uniqueKey already processed. Skipping duplicate.');
+      return null;
+    }
+
+    // DEDUPLICATION GUARD 2: Rapid Duplicate Prevention (Same app + same amount within 60s)
+    final candidateAmount = _extractAmountClientSide(content);
+    final now = DateTime.now();
+    final isRecentDuplicate = _history.any((tx) {
+      if (tx.packageName.toLowerCase() == appPackage.toLowerCase() &&
+          candidateAmount > 0 &&
+          (tx.amount - candidateAmount).abs() < 0.01) {
+        final diff = now.difference(tx.timestamp).inSeconds.abs();
+        if (diff < 60) return true;
+      }
+      return false;
+    });
+
+    if (isRecentDuplicate) {
+      debugPrint('[Deduplication] Transaction from $appPackage ($candidateAmount) recently recorded. Skipping duplicate.');
+      _processedNotificationKeys.add(uniqueKey);
+      _saveProcessedKeys();
+      return null;
+    }
+
+    _processedNotificationKeys.add(uniqueKey);
+    _saveProcessedKeys();
 
     try {
       final stopwatch = Stopwatch()..start();

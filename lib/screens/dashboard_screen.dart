@@ -28,12 +28,14 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     ApiSyncService().checkPermission();
+    ApiSyncService().syncActiveNotifications();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       ApiSyncService().checkPermission();
+      ApiSyncService().syncActiveNotifications();
     }
   }
 
@@ -117,6 +119,30 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             ),
             actions: [
               IconButton(
+                icon: const Icon(Icons.sync_rounded, color: AppTheme.primaryEmerald),
+                tooltip: 'Pindai Ulang Notifikasi Status Bar',
+                onPressed: () async {
+                  final count = await syncService.syncActiveNotifications();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        backgroundColor: count > 0 ? AppTheme.primaryEmerald : const Color(0xFF1E293B),
+                        content: Text(
+                          count > 0
+                              ? 'Sukses mencatat $count transaksi dari notifikasi aktif di HP!'
+                              : 'Notifikasi diperiksa. Semua transaksi aktif sudah tercatat rapi tanpa duplikat.',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: count > 0 ? Colors.black : Colors.white,
+                          ),
+                        ),
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                },
+              ),
+              IconButton(
                 icon: Icon(
                   _isBalanceMasked ? Icons.visibility_off_rounded : Icons.visibility_rounded,
                   color: AppTheme.getTextSecondary(context),
@@ -180,7 +206,31 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
               ),
             ],
           ),
-          body: SingleChildScrollView(
+          body: RefreshIndicator(
+            color: AppTheme.primaryEmerald,
+            backgroundColor: isDark ? AppTheme.darkCard : Colors.white,
+            onRefresh: () async {
+              await syncService.checkPermission();
+              final count = await syncService.syncActiveNotifications();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    backgroundColor: count > 0 ? AppTheme.primaryEmerald : const Color(0xFF1E293B),
+                    content: Text(
+                      count > 0
+                          ? 'Sukses mencatat $count transaksi baru dari notifikasi HP!'
+                          : 'Notifikasi status bar diperiksa. Tidak ada transaksi baru.',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: count > 0 ? Colors.black : Colors.white,
+                      ),
+                    ),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+            child: SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -563,8 +613,9 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
               ],
             ),
           ),
-        );
-      },
+        ),
+      );
+    },
     );
   }
 

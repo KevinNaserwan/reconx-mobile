@@ -10,6 +10,8 @@ class ReconXNotificationListener : NotificationListenerService() {
     companion object {
         private const val TAG = "ReconXListener"
         var notificationCallback: ((Map<String, Any?>) -> Unit)? = null
+        var instance: ReconXNotificationListener? = null
+        val processedKeys = mutableSetOf<String>()
 
         val TARGET_PACKAGES = setOf(
             "com.bcadigital.blu",
@@ -41,13 +43,58 @@ class ReconXNotificationListener : NotificationListenerService() {
         )
     }
 
+    override fun onListenerConnected() {
+        super.onListenerConnected()
+        instance = this
+        Log.i(TAG, "ReconXNotificationListener connected successfully.")
+        // Scan any pending notifications currently sitting in the status bar
+        syncActiveNotifications()
+    }
+
+    override fun onListenerDisconnected() {
+        super.onListenerDisconnected()
+        instance = null
+        Log.w(TAG, "ReconXNotificationListener disconnected.")
+    }
+
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
         super.onNotificationPosted(sbn)
-        if (sbn == null) return
+        processNotification(sbn)
+    }
 
-        val packageName = sbn.packageName?.lowercase() ?: return
-        val notification = sbn.notification ?: return
-        val extras = notification.extras ?: return
+    override fun onNotificationRemoved(sbn: StatusBarNotification?) {
+        super.onNotificationRemoved(sbn)
+    }
+
+    fun syncActiveNotifications(): Int {
+        var count = 0
+        try {
+            val activeList = activeNotifications ?: return 0
+            Log.d(TAG, "Scanning ${activeList.size} active notifications in tray...")
+            for (sbn in activeList) {
+                if (processNotification(sbn)) {
+                    count++
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error scanning active notifications: $e")
+        }
+        return count
+    }
+
+    private fun processNotification(sbn: StatusBarNotification?): Boolean {
+        if (sbn == null) return false
+
+        val packageName = sbn.packageName?.lowercase() ?: return false
+        val notification = sbn.notification ?: return false
+        val extras = notification.extras ?: return false
+
+        // Deduplication Key: combination of packageName, notification ID, and postTime
+        val notifKey = "${packageName}_${sbn.id}_${sbn.postTime}"
+        if (processedKeys.contains(notifKey)) {
+            // Already processed earlier; skip to guarantee ZERO duplicates
+            return false
+        }
 
         // 1. Thoroughly extract all possible text fields
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString()?.trim() ?: ""
@@ -106,24 +153,43 @@ class ReconXNotificationListener : NotificationListenerService() {
                                    combinedSearch.contains("transaksi") ||
                                    combinedSearch.contains("pembayaran") ||
                                    combinedSearch.contains("debit") ||
-                                   combinedSearch.contains("kredit")
+                                   combinedSearch.contains("kredit") ||
+                                   combinedSearch.contains("saldo") ||
+                                   combinedSearch.contains("uang") ||
+                                   combinedSearch.contains("top up") ||
+                                   combinedSearch.contains("diterima") ||
+                                   combinedSearch.contains("dikirim") ||
+                                   combinedSearch.contains("keluar") ||
+                                   combinedSearch.contains("masuk") ||
+                                   combinedSearch.contains("payment")
 
         if (isTargetApp || hasFinancialKeywords) {
-            Log.i(TAG, "Financial Notification Intercepted! pkg=$packageName title=$effectiveTitle content=$effectiveContent")
+            Log.i(TAG, "Financial Notification Processed! pkg=$packageName key=$notifKey title=$effectiveTitle content=$effectiveContent")
+
+            // Mark key as processed in deduplication set
+            processedKeys.add(notifKey)
+            if (processedKeys.size > 2000) {
+                val iterator = processedKeys.iterator()
+                for (i in 0 until 500) {
+                    if (iterator.hasNext()) {
+                        iterator.next()
+                        iterator.remove()
+                    }
+                }
+            }
 
             val payload = mapOf(
                 "packageName" to packageName,
                 "title" to effectiveTitle,
                 "content" to effectiveContent,
-                "postTime" to sbn.postTime
+                "postTime" to sbn.postTime,
+                "notificationKey" to notifKey
             )
 
             // Stream directly into Flutter Dart runtime
             notificationCallback?.invoke(payload)
+            return true
         }
-    }
-
-    override fun onNotificationRemoved(sbn: StatusBarNotification?) {
-        super.onNotificationRemoved(sbn)
+        return false
     }
 }
