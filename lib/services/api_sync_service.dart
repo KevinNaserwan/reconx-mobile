@@ -37,12 +37,42 @@ class ApiSyncService extends ChangeNotifier {
   final List<SyncedTransaction> _history = [];
   List<SyncedTransaction> get history => List.unmodifiable(_history);
 
+  // Bank & E-Wallet Interception Filter Settings
+  Map<String, bool> _appFilters = {
+    'bca': true,
+    'mandiri': true,
+    'bri': true,
+    'bni': true,
+    'seabank': true,
+    'gopay': true,
+    'ovo': true,
+    'dana': true,
+    'shopee': true,
+    'superbank': true,
+  };
+  Map<String, bool> get appFilters => Map.unmodifiable(_appFilters);
+
   StreamSubscription? _eventSubscription;
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _backendUrl = prefs.getString('reconx_backend_url') ?? 'https://reconx.ramuni.id/api/v1';
     _isServiceActive = prefs.getBool('reconx_service_active') ?? true;
+
+    // Load persisted app filters
+    final filtersJson = prefs.getString('reconx_app_filters');
+    if (filtersJson != null) {
+      try {
+        final Map<String, dynamic> decoded = jsonDecode(filtersJson);
+        for (final k in decoded.keys) {
+          if (_appFilters.containsKey(k)) {
+            _appFilters[k] = decoded[k] == true;
+          }
+        }
+      } catch (e) {
+        debugPrint('Failed to load saved app filters: $e');
+      }
+    }
 
     // Load persisted real transaction history
     _history.clear();
@@ -64,6 +94,56 @@ class ApiSyncService extends ChangeNotifier {
     await checkPermission();
     _startNativeListener();
     notifyListeners();
+  }
+
+  Future<void> toggleAppFilter(String key, bool enabled) async {
+    _appFilters[key] = enabled;
+    notifyListeners();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('reconx_app_filters', jsonEncode(_appFilters));
+    } catch (e) {
+      debugPrint('Failed to persist app filters: $e');
+    }
+  }
+
+  bool isNotificationAllowed(String appPackage, String title, String content) {
+    if (!_isServiceActive) return false;
+
+    final combined = '${appPackage.toLowerCase()} ${title.toLowerCase()} ${content.toLowerCase()}';
+
+    if (combined.contains('bca') || combined.contains('blu')) {
+      return _appFilters['bca'] ?? true;
+    }
+    if (combined.contains('mandiri') || combined.contains('livin')) {
+      return _appFilters['mandiri'] ?? true;
+    }
+    if (combined.contains('bri') || combined.contains('brimo')) {
+      return _appFilters['bri'] ?? true;
+    }
+    if (combined.contains('bni')) {
+      return _appFilters['bni'] ?? true;
+    }
+    if (combined.contains('seabank') || combined.contains('searpm')) {
+      return _appFilters['seabank'] ?? true;
+    }
+    if (combined.contains('gopay') || combined.contains('gojek')) {
+      return _appFilters['gopay'] ?? true;
+    }
+    if (combined.contains('ovo')) {
+      return _appFilters['ovo'] ?? true;
+    }
+    if (combined.contains('dana')) {
+      return _appFilters['dana'] ?? true;
+    }
+    if (combined.contains('shopee') || combined.contains('spay')) {
+      return _appFilters['shopee'] ?? true;
+    }
+    if (combined.contains('superbank')) {
+      return _appFilters['superbank'] ?? true;
+    }
+
+    return true; // Default allow for other detected financial notifications
   }
 
   Future<void> _saveHistoryToPrefs() async {
@@ -94,10 +174,20 @@ class ApiSyncService extends ChangeNotifier {
           if (!_isServiceActive) return;
           if (event is Map) {
             final map = Map<String, dynamic>.from(event);
+            final pkg = map['packageName'] ?? '';
+            final ttl = map['title'] ?? '';
+            final cnt = map['content'] ?? '';
+
+            // Check if this app/bank notification is allowed by user's filter
+            if (!isNotificationAllowed(pkg, ttl, cnt)) {
+              debugPrint('Notification filtered out by user preference: $pkg');
+              return;
+            }
+
             syncNotification(
-              appPackage: map['packageName'] ?? '',
-              title: map['title'] ?? '',
-              content: map['content'] ?? '',
+              appPackage: pkg,
+              title: ttl,
+              content: cnt,
               postTime: map['postTime'],
             );
           }
@@ -139,25 +229,6 @@ class ApiSyncService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('reconx_backend_url', url);
     notifyListeners();
-  }
-
-  Future<bool> testConnection() async {
-    try {
-      final stopwatch = Stopwatch()..start();
-      final uri = Uri.parse('$_backendUrl/mobile/status');
-      final res = await http.get(uri).timeout(const Duration(seconds: 4));
-      stopwatch.stop();
-
-      if (res.statusCode == 200) {
-        _latencyMs = stopwatch.elapsedMilliseconds;
-        notifyListeners();
-        return true;
-      }
-      return false;
-    } catch (e) {
-      debugPrint('Connection test failed: $e');
-      return false;
-    }
   }
 
   /// Sync scanned receipt / physical payment
@@ -285,11 +356,17 @@ class ApiSyncService extends ChangeNotifier {
   String _resolveAppName(String pkg) {
     final p = pkg.toLowerCase();
     if (p.contains('bcadigital') || p.contains('blu')) return 'blu by BCA Digital';
+    if (p.contains('bca')) return 'BCA Mobile';
+    if (p.contains('mandiri') || p.contains('livin')) return "Livin' by Mandiri";
+    if (p.contains('bri') || p.contains('brimo')) return 'BRImo';
+    if (p.contains('bni')) return 'BNI Mobile';
     if (p.contains('searpm') || p.contains('seabank')) return 'SeaBank Indonesia';
     if (p.contains('superbank')) return 'Superbank Indonesia';
     if (p.contains('shopee')) return 'ShopeePay';
     if (p.contains('tokopedia')) return 'Tokopedia';
     if (p.contains('ovo')) return 'OVO';
+    if (p.contains('gopay') || p.contains('gojek')) return 'GoPay';
+    if (p.contains('dana')) return 'DANA Indonesia';
     if (p.contains('bibit')) return 'Bibit (Investasi)';
     if (p.contains('pluang')) return 'Pluang (Investasi)';
     return 'Bank / Dompet Digital';

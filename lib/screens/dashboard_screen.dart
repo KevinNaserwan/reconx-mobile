@@ -3,7 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../services/api_sync_service.dart';
 import '../services/auth_service.dart';
+import '../services/theme_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/brand_badge.dart';
 import 'settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -25,22 +27,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   final List<Map<String, String>> monitoredApps = [
-    {'name': 'Pluang (Emas & Saham)', 'pkg': 'com.pluang.android', 'color': '0xFFFBBF24'},
-    {'name': 'Bibit (Investasi)', 'pkg': 'com.bibit.id', 'color': '0xFF14B8A6'},
-    {'name': 'Bareksa', 'pkg': 'com.bareksa.android', 'color': '0xFF10B981'},
-    {'name': 'Ajaib Sekuritas', 'pkg': 'com.ajaib.android', 'color': '0xFF3B82F6'},
-    {'name': 'Stockbit Saham', 'pkg': 'id.stockbit.android', 'color': '0xFF6366F1'},
-    {'name': 'blu by BCA', 'pkg': 'id.co.bcadigital.blu', 'color': '0xFF06B6D4'},
-    {'name': 'SeaBank', 'pkg': 'com.searpm.bank', 'color': '0xFFF97316'},
-    {'name': 'Superbank', 'pkg': 'id.superbank.app', 'color': '0xFFA855F7'},
-    {'name': 'ShopeePay', 'pkg': 'com.shopee.id', 'color': '0xFFF59E0B'},
-    {'name': 'Tokopedia', 'pkg': 'com.tokopedia.tkpd', 'color': '0xFF10B981'},
-    {'name': 'OVO', 'pkg': 'ovo.id', 'color': '0xFF8B5CF6'},
+    {'name': 'BCA (Mobile / blu)', 'key': 'bca', 'tag': 'BCA'},
+    {'name': "Mandiri (Livin')", 'key': 'mandiri', 'tag': 'Livin'},
+    {'name': 'BRI (BRImo)', 'key': 'bri', 'tag': 'BRI'},
+    {'name': 'BNI Mobile', 'key': 'bni', 'tag': 'BNI'},
+    {'name': 'SeaBank', 'key': 'seabank', 'tag': 'SeaBank'},
+    {'name': 'GoPay / Gojek', 'key': 'gopay', 'tag': 'GoPay'},
+    {'name': 'OVO', 'key': 'ovo', 'tag': 'OVO'},
+    {'name': 'DANA Indonesia', 'key': 'dana', 'tag': 'DANA'},
+    {'name': 'ShopeePay & SPayLater', 'key': 'shopee', 'tag': 'Shopee'},
+    {'name': 'Superbank', 'key': 'superbank', 'tag': 'Superbank'},
   ];
 
   @override
   Widget build(BuildContext context) {
     final user = AuthService().currentUser;
+    final isDark = AppTheme.isDark(context);
+    final themeService = ThemeService();
 
     return ListenableBuilder(
       listenable: ApiSyncService(),
@@ -48,9 +51,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         final syncService = ApiSyncService();
 
         return Scaffold(
-          backgroundColor: AppTheme.darkBg,
+          backgroundColor: AppTheme.getBg(context),
           appBar: AppBar(
-            backgroundColor: AppTheme.darkCard,
+            backgroundColor: AppTheme.getCard(context),
             elevation: 0,
             title: Row(
               children: [
@@ -72,14 +75,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        color: AppTheme.getTextPrimary(context),
                       ),
                     ),
                     Text(
                       user?.email.isNotEmpty == true ? user!.email : 'Online Sync Engine',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
-                        color: Colors.white54,
+                        color: AppTheme.getTextSecondary(context),
                       ),
                     ),
                   ],
@@ -88,7 +91,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.settings_outlined, color: Colors.white70),
+                icon: Icon(
+                  themeService.isDarkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  color: AppTheme.getTextSecondary(context),
+                ),
+                tooltip: 'Ganti Mode Tema (Terang / Gelap)',
+                onPressed: () => themeService.toggleTheme(),
+              ),
+              IconButton(
+                icon: Icon(Icons.settings_outlined, color: AppTheme.getTextSecondary(context)),
                 onPressed: () {
                   if (widget.onNavigateTab != null) {
                     widget.onNavigateTab!(4); // Navigate to Settings Tab
@@ -111,8 +122,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     color: syncService.isServiceActive
-                        ? AppTheme.primaryEmerald.withOpacity(0.12)
-                        : Colors.amber.withOpacity(0.12),
+                        ? AppTheme.primaryEmerald.withOpacity(isDark ? 0.12 : 0.08)
+                        : Colors.amber.withOpacity(isDark ? 0.12 : 0.08),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: syncService.isServiceActive
@@ -145,15 +156,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                                 color: syncService.isServiceActive
-                                    ? AppTheme.primaryEmerald
-                                    : Colors.amber,
+                                  ? AppTheme.primaryEmerald
+                                  : Colors.amber,
                               ),
                             ),
                             Text(
                               'Memonitor mutasi bank, e-wallet, & nota fisik',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
-                                color: Colors.white54,
+                                color: AppTheme.getTextSecondary(context),
                               ),
                             ),
                           ],
@@ -175,6 +186,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Expanded(
                       child: _buildMetricCard(
+                        context,
                         'Total Terdata',
                         currencyFormat.format(syncService.syncedVolumeToday),
                         Icons.payments_outlined,
@@ -183,6 +195,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _buildMetricCard(
+                        context,
                         'Transaksi',
                         '${syncService.syncedCountToday} Trx',
                         Icons.sync_alt_rounded,
@@ -191,6 +204,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _buildMetricCard(
+                        context,
                         'Latency',
                         '${syncService.latencyMs}ms',
                         Icons.speed_rounded,
@@ -210,7 +224,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: AppTheme.darkCard,
+                            color: AppTheme.getCard(context),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: AppTheme.primaryEmerald.withOpacity(0.4)),
                           ),
@@ -219,19 +233,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primaryEmerald.withOpacity(0.2),
+                                  color: AppTheme.primaryEmerald.withOpacity(0.15),
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.camera_alt_rounded, size: 20, color: AppTheme.primaryEmerald),
+                                child: const Icon(Icons.qr_code_scanner_rounded, size: 20, color: AppTheme.primaryEmerald),
                               ),
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'Scan Nota Fisik',
+                                  'Pindai QRIS & Nota',
                                   style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 13,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                    color: AppTheme.getTextPrimary(context),
                                   ),
                                 ),
                               ),
@@ -247,16 +261,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
-                            color: AppTheme.darkCard,
+                            color: AppTheme.getCard(context),
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppTheme.darkBorder),
+                            border: Border.all(color: AppTheme.getBorder(context)),
                           ),
                           child: Row(
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: AppTheme.primaryCyan.withOpacity(0.2),
+                                  color: AppTheme.primaryCyan.withOpacity(0.15),
                                   shape: BoxShape.circle,
                                 ),
                                 child: const Icon(Icons.receipt_long_rounded, size: 20, color: AppTheme.primaryCyan),
@@ -266,9 +280,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 child: Text(
                                   'Lihat Mutasi',
                                   style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 13,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                    color: AppTheme.getTextPrimary(context),
                                   ),
                                 ),
                               ),
@@ -280,52 +294,53 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
-                // Monitored Channels
+                // Monitored Apps Grid with Brand Badges
                 Text(
-                  'APLIKASI TERHUBUNG (11 KANAL)',
+                  'APLIKASI & BANK TERPANTAU',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
-                    color: Colors.white54,
+                    color: AppTheme.getTextSecondary(context),
                     letterSpacing: 0.8,
                   ),
                 ),
                 const SizedBox(height: 10),
                 SizedBox(
-                  height: 38,
+                  height: 48,
                   child: ListView.separated(
                     scrollDirection: Axis.horizontal,
                     itemCount: monitoredApps.length,
                     separatorBuilder: (_, __) => const SizedBox(width: 8),
                     itemBuilder: (ctx, idx) {
                       final item = monitoredApps[idx];
-                      final color = Color(int.parse(item['color']!));
+                      final isEnabled = syncService.appFilters[item['key']] ?? true;
+
                       return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          color: AppTheme.darkCard,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppTheme.darkBorder),
+                          color: AppTheme.getCard(context),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: isEnabled
+                                ? AppTheme.primaryEmerald.withOpacity(0.4)
+                                : AppTheme.getBorder(context),
+                          ),
                         ),
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            Container(
-                              width: 7,
-                              height: 7,
-                              decoration: BoxDecoration(
-                                color: color,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
+                            BrandBadgeHelper.buildBadgeWidget(item['name']!, item['name']!, size: 26),
                             const SizedBox(width: 8),
                             Text(
                               item['name']!,
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: isEnabled
+                                    ? AppTheme.getTextPrimary(context)
+                                    : AppTheme.getTextSecondary(context),
                               ),
                             ),
                           ],
@@ -337,7 +352,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                 const SizedBox(height: 24),
 
-                // Live Feed Section Header
+                // Transactions Feed Section Header
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -346,7 +361,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white54,
+                        color: AppTheme.getTextSecondary(context),
                         letterSpacing: 0.8,
                       ),
                     ),
@@ -371,20 +386,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
                     decoration: BoxDecoration(
-                      color: AppTheme.darkCard,
+                      color: AppTheme.getCard(context),
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: AppTheme.darkBorder),
+                      border: Border.all(color: AppTheme.getBorder(context)),
                     ),
                     child: Column(
                       children: [
-                        Icon(Icons.inbox_rounded, size: 38, color: Colors.white30),
+                        Icon(Icons.inbox_rounded, size: 38, color: AppTheme.getTextSecondary(context).withOpacity(0.5)),
                         const SizedBox(height: 10),
                         Text(
                           'Belum Ada Mutasi Hari Ini',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                            color: AppTheme.getTextPrimary(context),
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -393,7 +408,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           textAlign: TextAlign.center,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
-                            color: Colors.white54,
+                            color: AppTheme.getTextSecondary(context),
                           ),
                         ),
                       ],
@@ -407,72 +422,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     separatorBuilder: (_, __) => const SizedBox(height: 10),
                     itemBuilder: (ctx, idx) {
                       final item = syncService.history[idx];
-                      final isReceipt = item.channel.contains('RECEIPT');
 
                       return Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
-                          color: AppTheme.darkCard,
+                          color: AppTheme.getCard(context),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: isReceipt
-                                ? AppTheme.primaryEmerald.withOpacity(0.3)
-                                : AppTheme.darkBorder,
-                          ),
+                          border: Border.all(color: AppTheme.getBorder(context)),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: (isReceipt ? AppTheme.primaryTeal : AppTheme.primaryEmerald).withOpacity(0.12),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    item.appName,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w800,
-                                      color: isReceipt ? AppTheme.primaryTeal : AppTheme.primaryEmerald,
-                                    ),
-                                  ),
-                                ),
-                                Text(
-                                  DateFormat('HH:mm').format(item.timestamp),
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 11,
-                                    color: Colors.white54,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
+                            BrandBadgeHelper.buildBadgeWidget(item.appName, item.merchant, channel: item.channel, size: 42),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
                                     item.merchant,
                                     style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.w700,
-                                      color: Colors.white,
+                                      color: AppTheme.getTextPrimary(context),
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '${item.appName} • ${DateFormat('HH:mm').format(item.timestamp)}',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11,
+                                      color: AppTheme.getTextSecondary(context),
                                     ),
                                   ),
-                                ),
-                                Text(
-                                  currencyFormat.format(item.amount),
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppTheme.primaryEmerald,
-                                  ),
-                                ),
-                              ],
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              currencyFormat.format(item.amount),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.primaryEmerald,
+                              ),
                             ),
                           ],
                         ),
@@ -487,13 +481,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildMetricCard(String label, String value, IconData icon) {
+  Widget _buildMetricCard(BuildContext context, String label, String value, IconData icon) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
       decoration: BoxDecoration(
-        color: AppTheme.darkCard,
+        color: AppTheme.getCard(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.darkBorder),
+        border: Border.all(color: AppTheme.getBorder(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -503,9 +497,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Text(
             value,
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.w800,
-              color: Colors.white,
+              color: AppTheme.getTextPrimary(context),
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
@@ -515,7 +509,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             label,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 10,
-              color: Colors.white54,
+              color: AppTheme.getTextSecondary(context),
             ),
           ),
         ],

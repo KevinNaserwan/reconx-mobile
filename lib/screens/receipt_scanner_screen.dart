@@ -16,7 +16,11 @@ class ReceiptScannerScreen extends StatefulWidget {
   State<ReceiptScannerScreen> createState() => _ReceiptScannerScreenState();
 }
 
-class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
+class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _laserController;
+  late Animation<double> _laserAnimation;
+
   NumberFormat get currencyFormat {
     try {
       return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
@@ -26,6 +30,7 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
   }
 
   bool _isProcessing = false;
+  bool _isTorchOn = false;
   ReceiptScanResult? _scanResult;
 
   final _merchantController = TextEditingController();
@@ -56,7 +61,21 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _laserController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+
+    _laserAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _laserController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
   void dispose() {
+    _laserController.dispose();
     _merchantController.dispose();
     _amountController.dispose();
     super.dispose();
@@ -154,238 +173,279 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.darkBg,
-      appBar: AppBar(
-        backgroundColor: AppTheme.darkCard,
-        elevation: 0,
-        title: Text(
-          'Scan Nota & Pembayaran Fisik',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-          ),
-        ),
-        actions: [
-          if (_scanResult != null)
-            IconButton(
-              icon: const Icon(Icons.refresh_rounded, color: Colors.white70),
-              tooltip: 'Scan Ulang',
-              onPressed: () => setState(() => _scanResult = null),
-            ),
-        ],
-      ),
-      body: SafeArea(
-        child: _isProcessing
-            ? Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    CircularProgressIndicator(color: AppTheme.primaryEmerald),
-                    SizedBox(height: 16),
-                    Text(
-                      'Menganalisis Struk & Mengekstrak Data...',
-                      style: TextStyle(color: Colors.white70),
-                    ),
-                  ],
-                ),
-              )
-            : SingleChildScrollView(
-                padding: const EdgeInsets.all(20.0),
-                child: _scanResult == null ? _buildEmptyPicker() : _buildScanResultForm(),
-              ),
-      ),
-    );
+    if (_scanResult != null) {
+      return _buildResultScaffold();
+    }
+
+    return _buildGoPayStyleScannerView();
   }
 
-  Widget _buildEmptyPicker() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Hero Card
-        Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: AppTheme.darkCard,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: AppTheme.darkBorder),
-            gradient: LinearGradient(
-              colors: [
-                AppTheme.primaryEmerald.withOpacity(0.08),
-                AppTheme.primaryCyan.withOpacity(0.04),
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+  /// GoPay / DANA styled Camera Viewfinder UI
+  Widget _buildGoPayStyleScannerView() {
+    final size = MediaQuery.of(context).size;
+    final boxSize = size.width * 0.76;
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Simulated Camera Preview Mesh Background
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: RadialGradient(
+                center: Alignment.center,
+                radius: 1.2,
+                colors: [
+                  Color(0xFF0F172A),
+                  Color(0xFF020617),
+                  Colors.black,
+                ],
+              ),
             ),
           ),
-          child: Column(
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryEmerald.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.receipt_long_rounded,
-                  size: 38,
-                  color: AppTheme.primaryEmerald,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Auto-Ingest Struk Belanja & Pembayaran',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Foto struk fisik dari kasir minimarket, SPBU, restoran, atau cafe. Sistem otomatis mengekstrak merchant, total belanja, dan menyinkronkannya ke ledger keluarga.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  color: Colors.white60,
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
 
-        const SizedBox(height: 24),
-
-        // Action Buttons: Camera vs Gallery
-        Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => _handleCapture(true),
-                child: Container(
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: AppTheme.darkCard,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppTheme.primaryEmerald.withOpacity(0.4)),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryEmerald.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.camera_alt_rounded, size: 28, color: AppTheme.primaryEmerald),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Foto Kamera',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => _handleCapture(false),
-                child: Container(
-                  height: 120,
-                  decoration: BoxDecoration(
-                    color: AppTheme.darkCard,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppTheme.darkBorder),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryCyan.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.photo_library_rounded, size: 28, color: AppTheme.primaryCyan),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Pilih Galeri',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 28),
-
-        // Tips Card
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppTheme.darkCard.withOpacity(0.5),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.darkBorder),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+          // Central Viewfinder Cutout Mask
+          Center(
+            child: SizedBox(
+              width: boxSize,
+              height: boxSize * 1.15,
+              child: Stack(
                 children: [
-                  const Icon(Icons.lightbulb_outline_rounded, size: 18, color: Color(0xFFFBBF24)),
-                  const SizedBox(width: 8),
+                  // Viewfinder Border with Corner Accents
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: AppTheme.primaryEmerald.withOpacity(0.5),
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+
+                  // 4 Corner Brackets (GoPay Style)
+                  _buildCornerReticle(Alignment.topLeft),
+                  _buildCornerReticle(Alignment.topRight),
+                  _buildCornerReticle(Alignment.bottomLeft),
+                  _buildCornerReticle(Alignment.bottomRight),
+
+                  // Animated Sweeping Laser Scanner Line
+                  AnimatedBuilder(
+                    animation: _laserAnimation,
+                    builder: (context, _) {
+                      return Positioned(
+                        top: _laserAnimation.value * (boxSize * 1.15 - 8),
+                        left: 8,
+                        right: 8,
+                        child: Container(
+                          height: 3,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [
+                                Colors.transparent,
+                                AppTheme.primaryEmerald,
+                                AppTheme.primaryCyan,
+                                Colors.transparent,
+                              ],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryEmerald.withOpacity(0.7),
+                                blurRadius: 10,
+                                spreadRadius: 2,
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Top Header Bar
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.4),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
+                      onPressed: () {
+                        if (widget.onScanComplete != null) {
+                          widget.onScanComplete!();
+                        }
+                      },
+                    ),
+                  ),
                   Text(
-                    'Tips Pengambilan Foto Struk',
+                    'Pindai QRIS & Nota Fisik',
                     style: GoogleFonts.plusJakartaSans(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
                       color: Colors.white,
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: _isTorchOn
+                          ? AppTheme.primaryEmerald.withOpacity(0.2)
+                          : Colors.black.withOpacity(0.4),
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      icon: Icon(
+                        _isTorchOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
+                        color: _isTorchOn ? AppTheme.primaryEmerald : Colors.white,
+                      ),
+                      onPressed: () {
+                        setState(() => _isTorchOn = !_isTorchOn);
+                      },
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              _buildTipRow('Pastikan pencahayaan cukup dan struk tidak terlipat.'),
-              _buildTipRow('Nama toko dan total akhir (Rp) berada di dalam frame.'),
-              _buildTipRow('Struk QRIS dan EDC bank terbaca lebih cepat dan akurat.'),
-            ],
+            ),
           ),
-        ),
-      ],
-    );
-  }
 
-  Widget _buildTipRow(String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('• ', style: TextStyle(color: Colors.white54, fontSize: 13)),
-          Expanded(
-            child: Text(
-              text,
-              style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white60),
+          // Helper Subtitle Under Viewfinder
+          Positioned(
+            top: (size.height / 2) + (boxSize * 0.58) + 16,
+            left: 24,
+            right: 24,
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: Text(
+                    'Arahkan kamera ke struk kasir atau QRIS',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      color: Colors.white.withOpacity(0.9),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Bottom Controls (GoPay Camera & Gallery Bar)
+          Positioned(
+            bottom: 30,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    // Upload Gallery Button
+                    GestureDetector(
+                      onTap: _isProcessing ? null : () => _handleCapture(false),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 52,
+                            height: 52,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E293B),
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white24),
+                            ),
+                            child: const Icon(Icons.photo_library_rounded, color: Colors.white, size: 24),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Galeri',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Big Circular Shutter Button
+                    GestureDetector(
+                      onTap: _isProcessing ? null : () => _handleCapture(true),
+                      child: Container(
+                        width: 76,
+                        height: 76,
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppTheme.primaryEmerald, width: 3),
+                        ),
+                        child: Container(
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: _isProcessing
+                                ? const SizedBox(
+                                    width: 28,
+                                    height: 28,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 3,
+                                      color: AppTheme.primaryEmerald,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.camera_alt_rounded,
+                                    color: Colors.black,
+                                    size: 32,
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // Quick Mode Indicator
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryEmerald.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppTheme.primaryEmerald.withOpacity(0.5)),
+                          ),
+                          child: const Icon(Icons.auto_awesome_rounded, color: AppTheme.primaryEmerald, size: 24),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Auto OCR',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            color: AppTheme.primaryEmerald,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -393,225 +453,258 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen> {
     );
   }
 
-  Widget _buildScanResultForm() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Image Preview Header with Confidence Badge
-        Stack(
-          children: [
-            Container(
-              height: 180,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.primaryEmerald.withOpacity(0.4)),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: File(_scanResult!.imagePath).existsSync()
-                    ? Image.file(
-                        File(_scanResult!.imagePath),
-                        fit: BoxFit.cover,
-                      )
-                    : Container(
-                        color: AppTheme.darkCard,
-                        child: const Icon(Icons.receipt_rounded, size: 48, color: Colors.white30),
-                      ),
-              ),
-            ),
-            Positioned(
-              top: 12,
-              right: 12,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryEmerald,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.auto_awesome, size: 14, color: Colors.white),
-                    const SizedBox(width: 4),
-                    Text(
-                      'AI OCR Extracted (${(_scanResult!.confidenceScore * 100).toInt()}%)',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+  Widget _buildCornerReticle(Alignment alignment) {
+    const double length = 24.0;
+    const double thickness = 3.5;
+    const color = AppTheme.primaryEmerald;
 
-        const SizedBox(height: 20),
+    Border border;
+    if (alignment == Alignment.topLeft) {
+      border = const Border(
+        top: BorderSide(color: color, width: thickness),
+        left: BorderSide(color: color, width: thickness),
+      );
+    } else if (alignment == Alignment.topRight) {
+      border = const Border(
+        top: BorderSide(color: color, width: thickness),
+        right: BorderSide(color: color, width: thickness),
+      );
+    } else if (alignment == Alignment.bottomLeft) {
+      border = const Border(
+        bottom: BorderSide(color: color, width: thickness),
+        left: BorderSide(color: color, width: thickness),
+      );
+    } else {
+      border = const Border(
+        bottom: BorderSide(color: color, width: thickness),
+        right: BorderSide(color: color, width: thickness),
+      );
+    }
 
-        // Form Fields for Extracted Data
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppTheme.darkCard,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.darkBorder),
+    return Align(
+      alignment: alignment,
+      child: Container(
+        width: length,
+        height: length,
+        decoration: BoxDecoration(
+          border: border,
+          borderRadius: BorderRadius.only(
+            topLeft: alignment == Alignment.topLeft ? const Radius.circular(8) : Radius.zero,
+            topRight: alignment == Alignment.topRight ? const Radius.circular(8) : Radius.zero,
+            bottomLeft: alignment == Alignment.bottomLeft ? const Radius.circular(8) : Radius.zero,
+            bottomRight: alignment == Alignment.bottomRight ? const Radius.circular(8) : Radius.zero,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Data Hasil Ekstraksi Struk',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 16),
+        ),
+      ),
+    );
+  }
 
-              // Merchant Field
-              Text('Nama Toko / Merchant', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white70)),
-              const SizedBox(height: 6),
-              TextField(
-                controller: _merchantController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: AppTheme.darkBg,
-                  prefixIcon: const Icon(Icons.storefront_rounded, color: AppTheme.primaryEmerald),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                ),
-              ),
+  /// Extracted Data Review & Sync Scaffold
+  Widget _buildResultScaffold() {
+    final isDark = AppTheme.isDark(context);
 
-              const SizedBox(height: 14),
-
-              // Amount Field
-              Text('Total Pembayaran (Rp)', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white70)),
-              const SizedBox(height: 6),
-              TextField(
-                controller: _amountController,
-                keyboardType: TextInputType.number,
-                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: AppTheme.darkBg,
-                  prefixIcon: const Icon(Icons.payments_rounded, color: AppTheme.primaryEmerald),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                ),
-              ),
-
-              const SizedBox(height: 14),
-
-              // Payment Method Dropdown
-              Text('Metode Pembayaran', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white70)),
-              const SizedBox(height: 6),
+    return Scaffold(
+      backgroundColor: AppTheme.getBg(context),
+      appBar: AppBar(
+        backgroundColor: AppTheme.getCard(context),
+        elevation: 0,
+        title: Text(
+          'Hasil Ekstraksi Nota & QRIS',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: AppTheme.getTextPrimary(context),
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.refresh_rounded, color: AppTheme.getTextSecondary(context)),
+            tooltip: 'Pindai Ulang',
+            onPressed: () => setState(() => _scanResult = null),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Preview Image Thumbnail
+            if (_scanResult!.imagePath != null && File(_scanResult!.imagePath!).existsSync())
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
+                height: 180,
+                margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: AppTheme.darkBg,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedMethod,
-                    dropdownColor: AppTheme.darkCard,
-                    isExpanded: true,
-                    style: const TextStyle(color: Colors.white),
-                    items: _paymentMethods.map((m) {
-                      return DropdownMenuItem(value: m, child: Text(m));
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _selectedMethod = val);
-                    },
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.getBorder(context)),
+                  image: DecorationImage(
+                    image: FileImage(File(_scanResult!.imagePath!)),
+                    fit: BoxFit.cover,
                   ),
                 ),
               ),
 
-              const SizedBox(height: 14),
+            // Extracted Form
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppTheme.getCard(context),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppTheme.getBorder(context)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.check_circle_rounded, color: AppTheme.primaryEmerald, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Data Berhasil Terdeteksi',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14,
+                          color: AppTheme.primaryEmerald,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
 
-              // Category Dropdown
-              Text('Kategori Pengeluaran', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white70)),
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                decoration: BoxDecoration(
-                  color: AppTheme.darkBg,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
+                  // Merchant Name
+                  Text(
+                    'Nama Toko / Merchant',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.getTextPrimary(context),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _merchantController,
+                    style: TextStyle(color: AppTheme.getTextPrimary(context)),
+                    decoration: _inputDecoration(context),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Total Amount
+                  Text(
+                    'Total Pembayaran (Rp)',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.getTextPrimary(context),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: _amountController,
+                    keyboardType: TextInputType.number,
+                    style: TextStyle(
+                      color: AppTheme.primaryEmerald,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                    decoration: _inputDecoration(context),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Category
+                  Text(
+                    'Kategori Pengeluaran',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.getTextPrimary(context),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
                     value: _selectedCategory,
-                    dropdownColor: AppTheme.darkCard,
-                    isExpanded: true,
-                    style: const TextStyle(color: Colors.white),
-                    items: _categories.map((c) {
-                      return DropdownMenuItem(value: c, child: Text(c));
-                    }).toList(),
+                    dropdownColor: isDark ? AppTheme.darkCard : Colors.white,
+                    style: TextStyle(color: AppTheme.getTextPrimary(context)),
+                    decoration: _inputDecoration(context),
+                    items: _categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                     onChanged: (val) {
                       if (val != null) setState(() => _selectedCategory = val);
                     },
                   ),
-                ),
+                  const SizedBox(height: 16),
+
+                  // Payment Method
+                  Text(
+                    'Metode Pembayaran',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.getTextPrimary(context),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: _selectedMethod,
+                    dropdownColor: isDark ? AppTheme.darkCard : Colors.white,
+                    style: TextStyle(color: AppTheme.getTextPrimary(context)),
+                    decoration: _inputDecoration(context),
+                    items: _paymentMethods.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => _selectedMethod = val);
+                    },
+                  ),
+                ],
               ),
-
-              if (_scanResult!.detectedItems.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Text('Rincian Item Terdeteksi:', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white70)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: _scanResult!.detectedItems.map((item) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppTheme.darkBg,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppTheme.darkBorder),
-                      ),
-                      child: Text(
-                        item,
-                        style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white70),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ],
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 24),
-
-        // Confirm Button
-        ElevatedButton(
-          onPressed: _handleConfirmSync,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryEmerald,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          ),
-          child: Text(
-            'Verifikasi & Masukkan ke Mutasi',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
             ),
-          ),
+
+            const SizedBox(height: 24),
+
+            // Confirm Button
+            ElevatedButton(
+              onPressed: _isProcessing ? null : _handleConfirmSync,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryEmerald,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: _isProcessing
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : Text(
+                      'Simpan ke Ledger Rekonsiliasi',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
-        TextButton(
-          onPressed: () => setState(() => _scanResult = null),
-          child: Text(
-            'Batal & Ambil Foto Lain',
-            style: GoogleFonts.plusJakartaSans(color: Colors.white60),
-          ),
-        ),
-      ],
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(BuildContext context) {
+    final isDark = AppTheme.isDark(context);
+    return InputDecoration(
+      filled: true,
+      fillColor: isDark ? AppTheme.darkBg : const Color(0xFFF8FAFC),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: AppTheme.getBorder(context)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: AppTheme.getBorder(context)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppTheme.primaryEmerald, width: 1.5),
+      ),
     );
   }
 }

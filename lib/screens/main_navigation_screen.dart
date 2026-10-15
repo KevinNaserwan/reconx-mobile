@@ -54,26 +54,33 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppTheme.isDark(context);
+
     return Scaffold(
-      backgroundColor: AppTheme.darkBg,
+      backgroundColor: AppTheme.getBg(context),
       body: _buildBody(),
       bottomNavigationBar: Container(
+        margin: const EdgeInsets.only(left: 14, right: 14, bottom: 12),
         decoration: BoxDecoration(
-          color: AppTheme.darkCard,
-          border: const Border(
-            top: BorderSide(color: AppTheme.darkBorder, width: 1),
+          color: isDark ? AppTheme.darkCard : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isDark ? AppTheme.darkBorder : const Color(0xFFE2E8F0),
+            width: 1,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 16,
-              offset: const Offset(0, -4),
+              color: isDark
+                  ? Colors.black.withOpacity(0.4)
+                  : const Color(0xFF0F172A).withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
+            padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 8.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -92,27 +99,39 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   Widget _buildNavItem(int index, IconData icon, String label) {
     final isSelected = _currentIndex == index;
+    final isDark = AppTheme.isDark(context);
 
     return InkWell(
       onTap: () => _onTabTapped(index),
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? AppTheme.primaryEmerald.withOpacity(isDark ? 0.15 : 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
               size: 22,
-              color: isSelected ? AppTheme.primaryEmerald : Colors.white38,
+              color: isSelected
+                  ? AppTheme.primaryEmerald
+                  : (isDark ? Colors.white38 : const Color(0xFF94A3B8)),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             Text(
               label,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 10,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                color: isSelected ? AppTheme.primaryEmerald : Colors.white38,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected
+                    ? AppTheme.primaryEmerald
+                    : (isDark ? Colors.white38 : const Color(0xFF94A3B8)),
               ),
             ),
           ],
@@ -127,7 +146,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     return GestureDetector(
       onTap: () => _onTabTapped(2),
       child: Container(
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [
@@ -140,14 +159,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primaryEmerald.withOpacity(0.35),
+              color: AppTheme.primaryEmerald.withOpacity(0.4),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
           ],
+          border: Border.all(
+            color: isSelected ? Colors.white : Colors.white.withOpacity(0.2),
+            width: 2,
+          ),
         ),
         child: const Icon(
-          Icons.camera_alt_rounded,
+          Icons.qr_code_scanner_rounded,
           size: 24,
           color: Colors.white,
         ),

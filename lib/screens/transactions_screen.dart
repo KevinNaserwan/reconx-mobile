@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../models/transaction_item.dart';
 import '../services/api_sync_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/brand_badge.dart';
 
 class TransactionsScreen extends StatefulWidget {
   final VoidCallback? onNavigateToScan;
@@ -50,10 +51,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   void _showTransactionDetails(SyncedTransaction tx) {
+    final isDark = AppTheme.isDark(context);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: AppTheme.darkCard,
+      backgroundColor: isDark ? AppTheme.darkCard : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -72,12 +75,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white,
+                      color: AppTheme.getTextPrimary(context),
                     ),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(ctx),
-                    icon: const Icon(Icons.close, color: Colors.white70),
+                    icon: Icon(Icons.close, color: AppTheme.getTextSecondary(context)),
                   ),
                 ],
               ),
@@ -86,26 +89,28 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: AppTheme.darkBg,
+                  color: isDark ? AppTheme.darkBg : const Color(0xFFF8FAFC),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.darkBorder),
+                  border: Border.all(color: AppTheme.getBorder(context)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    BrandBadgeHelper.buildBadgeWidget(tx.appName, tx.merchant, channel: tx.channel, size: 52),
+                    const SizedBox(height: 10),
                     Text(
                       tx.merchant,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        color: AppTheme.getTextPrimary(context),
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       currencyFormat.format(tx.amount),
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 26,
+                        fontSize: 24,
                         fontWeight: FontWeight.w900,
                         color: AppTheme.primaryEmerald,
                       ),
@@ -141,11 +146,12 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.darkBorder,
+                    backgroundColor: isDark ? AppTheme.darkCard : const Color(0xFFE2E8F0),
+                    foregroundColor: AppTheme.getTextPrimary(context),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: const Text('Tutup', style: TextStyle(color: Colors.white)),
+                  child: const Text('Tutup'),
                 ),
               ),
             ],
@@ -159,23 +165,27 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              label,
-              style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white54),
+          Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              color: AppTheme.getTextSecondary(context),
             ),
           ),
+          const SizedBox(width: 14),
           Expanded(
             child: Text(
               value,
+              textAlign: TextAlign.end,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: AppTheme.getTextPrimary(context),
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -185,84 +195,117 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = AppTheme.isDark(context);
+
     return Scaffold(
-      backgroundColor: AppTheme.darkBg,
+      backgroundColor: AppTheme.getBg(context),
       appBar: AppBar(
-        backgroundColor: AppTheme.darkCard,
+        backgroundColor: AppTheme.getCard(context),
         elevation: 0,
         title: Text(
-          'Mutasi & Rekonsiliasi',
+          'Mutasi Finansial Terdata',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            color: Colors.white,
+            color: AppTheme.getTextPrimary(context),
           ),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.qr_code_scanner_rounded, color: AppTheme.primaryEmerald),
+            tooltip: 'Pindai QRIS & Nota',
+            onPressed: widget.onNavigateToScan,
+          ),
+        ],
       ),
       body: ListenableBuilder(
         listenable: ApiSyncService(),
         builder: (context, _) {
-          final allTransactions = ApiSyncService().history;
+          final history = ApiSyncService().history;
 
-          // Filter by category / channel
-          final filtered = allTransactions.where((tx) {
-            final matchQuery = _searchQuery.isEmpty ||
-                tx.merchant.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                tx.content.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                tx.amount.toString().contains(_searchQuery);
-
-            if (!matchQuery) return false;
-
+          final filtered = history.where((tx) {
             if (_selectedFilter == 'QRIS') {
-              return tx.channel.contains('QRIS') || tx.content.toLowerCase().contains('qris');
+              if (!tx.channel.toLowerCase().contains('qris') &&
+                  !tx.appName.toLowerCase().contains('qris') &&
+                  !tx.merchant.toLowerCase().contains('qris')) {
+                return false;
+              }
             } else if (_selectedFilter == 'Transfer Bank') {
-              return tx.channel.contains('TRANSFER') || tx.appName.toLowerCase().contains('bank');
+              if (!tx.appName.toLowerCase().contains('bca') &&
+                  !tx.appName.toLowerCase().contains('mandiri') &&
+                  !tx.appName.toLowerCase().contains('bri') &&
+                  !tx.appName.toLowerCase().contains('bni') &&
+                  !tx.appName.toLowerCase().contains('seabank') &&
+                  !tx.appName.toLowerCase().contains('bank')) {
+                return false;
+              }
             } else if (_selectedFilter == 'E-Wallet') {
-              return tx.channel.contains('WALLET') ||
-                  tx.appName.toLowerCase().contains('shopee') ||
-                  tx.appName.toLowerCase().contains('ovo') ||
-                  tx.appName.toLowerCase().contains('gopay');
+              if (!tx.appName.toLowerCase().contains('gopay') &&
+                  !tx.appName.toLowerCase().contains('ovo') &&
+                  !tx.appName.toLowerCase().contains('dana') &&
+                  !tx.appName.toLowerCase().contains('shopee')) {
+                return false;
+              }
             } else if (_selectedFilter == 'Scan Nota') {
-              return tx.channel.contains('RECEIPT');
+              if (!tx.channel.toLowerCase().contains('receipt')) {
+                return false;
+              }
             }
+
+            if (_searchQuery.isNotEmpty) {
+              final query = _searchQuery.toLowerCase();
+              return tx.merchant.toLowerCase().contains(query) ||
+                  tx.appName.toLowerCase().contains(query) ||
+                  tx.content.toLowerCase().contains(query);
+            }
+
             return true;
           }).toList();
 
           return Column(
             children: [
-              // Search & Filter Bar
+              // Search & Filter Box
               Container(
-                padding: const EdgeInsets.all(16),
-                color: AppTheme.darkCard,
+                color: AppTheme.getCard(context),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
                 child: Column(
                   children: [
                     TextField(
                       controller: _searchController,
-                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                      style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 13),
                       decoration: InputDecoration(
-                        filled: true,
-                        fillColor: AppTheme.darkBg,
-                        hintText: 'Cari merchant, toko, atau nominal...',
-                        hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
-                        prefixIcon: const Icon(Icons.search, size: 20, color: Colors.white54),
+                        hintText: 'Cari nama merchant atau transaksi...',
+                        hintStyle: TextStyle(color: AppTheme.getTextSecondary(context).withOpacity(0.6), fontSize: 13),
+                        prefixIcon: Icon(Icons.search_rounded, size: 20, color: AppTheme.getTextSecondary(context)),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear, size: 18, color: Colors.white54),
+                                icon: const Icon(Icons.clear_rounded, size: 18),
                                 onPressed: () {
                                   _searchController.clear();
                                   setState(() => _searchQuery = '');
                                 },
                               )
                             : null,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        filled: true,
+                        fillColor: isDark ? AppTheme.darkBg : const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
+                          borderSide: BorderSide(color: AppTheme.getBorder(context)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: AppTheme.getBorder(context)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppTheme.primaryEmerald, width: 1.5),
                         ),
                       ),
-                      onChanged: (val) => setState(() => _searchQuery = val.trim()),
                     ),
                     const SizedBox(height: 12),
+                    // Filter Chips
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -273,12 +316,17 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                             child: ChoiceChip(
                               label: Text(f),
                               selected: isSelected,
-                              selectedColor: AppTheme.primaryEmerald,
-                              backgroundColor: AppTheme.darkBg,
+                              selectedColor: AppTheme.primaryEmerald.withOpacity(0.2),
+                              backgroundColor: isDark ? AppTheme.darkBg : const Color(0xFFF1F5F9),
                               labelStyle: GoogleFonts.plusJakartaSans(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: isSelected ? Colors.white : Colors.white60,
+                                fontSize: 11,
+                                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                                color: isSelected
+                                    ? AppTheme.primaryEmerald
+                                    : AppTheme.getTextSecondary(context),
+                              ),
+                              side: BorderSide(
+                                color: isSelected ? AppTheme.primaryEmerald : AppTheme.getBorder(context),
                               ),
                               onSelected: (_) => setState(() => _selectedFilter = f),
                             ),
@@ -290,7 +338,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                 ),
               ),
 
-              // Transactions List or Empty State
+              // Transaction List
               Expanded(
                 child: filtered.isEmpty
                     ? _buildEmptyState()
@@ -300,38 +348,24 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
                         itemBuilder: (ctx, idx) {
                           final tx = filtered[idx];
-                          final isReceipt = tx.channel.contains('RECEIPT');
 
                           return InkWell(
                             onTap: () => _showTransactionDetails(tx),
                             borderRadius: BorderRadius.circular(16),
                             child: Container(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: AppTheme.darkCard,
+                                color: AppTheme.getCard(context),
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: isReceipt
-                                      ? AppTheme.primaryEmerald.withOpacity(0.3)
-                                      : AppTheme.darkBorder,
-                                ),
+                                border: Border.all(color: AppTheme.getBorder(context)),
                               ),
                               child: Row(
                                 children: [
-                                  Container(
-                                    width: 44,
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      color: isReceipt
-                                          ? AppTheme.primaryEmerald.withOpacity(0.15)
-                                          : AppTheme.primaryCyan.withOpacity(0.15),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(
-                                      isReceipt ? Icons.receipt_long_rounded : Icons.sync_alt_rounded,
-                                      color: isReceipt ? AppTheme.primaryEmerald : AppTheme.primaryCyan,
-                                      size: 22,
-                                    ),
+                                  BrandBadgeHelper.buildBadgeWidget(
+                                    tx.appName,
+                                    tx.merchant,
+                                    channel: tx.channel,
+                                    size: 44,
                                   ),
                                   const SizedBox(width: 14),
                                   Expanded(
@@ -341,19 +375,19 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                         Text(
                                           tx.merchant,
                                           style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 14,
+                                            fontSize: 13,
                                             fontWeight: FontWeight.bold,
-                                            color: Colors.white,
+                                            color: AppTheme.getTextPrimary(context),
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
-                                        const SizedBox(height: 4),
+                                        const SizedBox(height: 3),
                                         Text(
                                           '${tx.appName} • ${dateFormat.format(tx.timestamp)}',
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11,
-                                            color: Colors.white54,
+                                            color: AppTheme.getTextSecondary(context),
                                           ),
                                         ),
                                       ],
@@ -363,9 +397,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                                   Text(
                                     currencyFormat.format(tx.amount),
                                     style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.w800,
-                                      color: Colors.white,
+                                      color: AppTheme.primaryEmerald,
                                     ),
                                   ),
                                 ],
@@ -393,14 +427,14 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: AppTheme.darkCard,
+                color: AppTheme.getCard(context),
                 shape: BoxShape.circle,
-                border: Border.all(color: AppTheme.darkBorder),
+                border: Border.all(color: AppTheme.getBorder(context)),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.account_balance_wallet_outlined,
                 size: 36,
-                color: Colors.white38,
+                color: AppTheme.getTextSecondary(context).withOpacity(0.5),
               ),
             ),
             const SizedBox(height: 18),
@@ -409,35 +443,16 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: Colors.white,
+                color: AppTheme.getTextPrimary(context),
               ),
             ),
             const SizedBox(height: 8),
             Text(
-              'Transaksi yang terdeteksi dari status bar notifikasi bank atau foto nota pembayaran fisik akan otomatis tersinkronisasi di sini.',
+              'Transaksi yang terdeteksi dari status bar notifikasi bank atau scan struk fisik akan otomatis tersinkronisasi di sini.',
               textAlign: TextAlign.center,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12,
-                color: Colors.white54,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: widget.onNavigateToScan,
-              icon: const Icon(Icons.camera_alt_rounded, size: 18, color: Colors.white),
-              label: Text(
-                'Scan Nota Fisik Sekarang',
-                style: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                  color: Colors.white,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryEmerald,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                color: AppTheme.getTextSecondary(context),
               ),
             ),
           ],

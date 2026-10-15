@@ -47,9 +47,19 @@ android {
         versionName flutterVersionName
     }
 
+    
+    signingConfigs {
+        release {
+            storeFile file('reconx-release.jks')
+            storePassword 'reconx2026pass'
+            keyAlias 'reconx'
+            keyPassword 'reconx2026pass'
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             minifyEnabled false
             shrinkResources false
         }

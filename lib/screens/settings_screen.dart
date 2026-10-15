@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/api_sync_service.dart';
 import '../services/auth_service.dart';
 import '../services/biometric_service.dart';
+import '../services/theme_service.dart';
 import '../theme/app_theme.dart';
 import 'login_screen.dart';
 
@@ -14,62 +15,269 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  late TextEditingController _urlController;
-  bool _isTesting = false;
-  String? _testResult;
-
   @override
   void initState() {
     super.initState();
-    _urlController = TextEditingController(text: ApiSyncService().backendUrl);
     BiometricService().init();
   }
 
-  @override
-  void dispose() {
-    _urlController.dispose();
-    super.dispose();
+  void _showEditProfileDialog() {
+    final user = AuthService().currentUser;
+    final nameCtrl = TextEditingController(text: user?.name ?? '');
+    final emailCtrl = TextEditingController(text: user?.email ?? '');
+    final phoneCtrl = TextEditingController(text: user?.phoneNumber ?? '');
+    final familyCtrl = TextEditingController(text: user?.familyName ?? '');
+    String selectedRole = user?.role ?? 'Head of Household (Suami)';
+
+    final isDark = AppTheme.isDark(context);
+
+    final roles = [
+      'Head of Household (Suami)',
+      'Co-Head of Household (Istri)',
+      'Anggota Keluarga (Anak)',
+      'Akun Mandiri (Personal)',
+    ];
+
+    if (!roles.contains(selectedRole)) {
+      roles.insert(0, selectedRole);
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Padding(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppTheme.darkCard : AppTheme.lightCard,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: AppTheme.getBorder(context)),
+            ),
+            padding: const EdgeInsets.all(24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Lengkapi Data Pribadi',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.getTextPrimary(context),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Perbarui profil Anda untuk sinkronisasi rekonsiliasi keluarga.',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      color: AppTheme.getTextSecondary(context),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Nama Lengkap
+                  _buildInputLabel('Nama Lengkap', context),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: nameCtrl,
+                    style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 14),
+                    decoration: _inputDecoration('Contoh: Kevin Naserwan', context),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Email
+                  _buildInputLabel('Alamat Email', context),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: emailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 14),
+                    decoration: _inputDecoration('kevin@example.com', context),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Nomor WhatsApp / HP
+                  _buildInputLabel('Nomor WhatsApp / HP', context),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: phoneCtrl,
+                    keyboardType: TextInputType.phone,
+                    style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 14),
+                    decoration: _inputDecoration('081234567890', context),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Peran Finansial
+                  _buildInputLabel('Peran Finansial Dalam Keluarga', context),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppTheme.darkBg : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.getBorder(context)),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: selectedRole,
+                        isExpanded: true,
+                        dropdownColor: isDark ? AppTheme.darkCard : AppTheme.lightCard,
+                        style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 13),
+                        items: roles.map((r) {
+                          return DropdownMenuItem<String>(
+                            value: r,
+                            child: Text(r),
+                          );
+                        }).toList(),
+                        onChanged: (val) {
+                          if (val != null) {
+                            setSheetState(() => selectedRole = val);
+                          }
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Nama Cluster Keluarga
+                  _buildInputLabel('Nama Keluarga / Household', context),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: familyCtrl,
+                    style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 14),
+                    decoration: _inputDecoration('Keluarga Kevin & Istri', context),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Tombol Simpan
+                  ElevatedButton(
+                    onPressed: () async {
+                      final n = nameCtrl.text.trim();
+                      final e = emailCtrl.text.trim();
+                      final p = phoneCtrl.text.trim();
+                      final f = familyCtrl.text.trim();
+
+                      if (n.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Nama lengkap wajib diisi.')),
+                        );
+                        return;
+                      }
+
+                      await AuthService().updateProfile(
+                        name: n,
+                        email: e.isNotEmpty ? e : (user?.email ?? ''),
+                        phoneNumber: p,
+                        role: selectedRole,
+                        familyName: f.isNotEmpty ? f : (user?.familyName ?? 'Keluarga'),
+                      );
+
+                      if (mounted) {
+                        Navigator.pop(ctx);
+                        setState(() {});
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            backgroundColor: AppTheme.primaryEmerald,
+                            content: Text('Profil dan data pribadi berhasil disimpan!'),
+                          ),
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryEmerald,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text(
+                      'Simpan Perubahan',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
-  Future<void> _handleTestPing() async {
-    setState(() {
-      _isTesting = true;
-      _testResult = null;
-    });
+  Widget _buildInputLabel(String text, BuildContext context) {
+    return Text(
+      text,
+      style: GoogleFonts.plusJakartaSans(
+        fontSize: 12,
+        fontWeight: FontWeight.w700,
+        color: AppTheme.getTextPrimary(context),
+      ),
+    );
+  }
 
-    await ApiSyncService().setBackendUrl(_urlController.text.trim());
-    final ok = await ApiSyncService().testConnection();
-
-    setState(() {
-      _isTesting = false;
-      _testResult = ok
-          ? 'Connected! Latency: ${ApiSyncService().latencyMs}ms'
-          : 'Gagal terhubung ke endpoint server.';
-    });
+  InputDecoration _inputDecoration(String hint, BuildContext context) {
+    final isDark = AppTheme.isDark(context);
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: AppTheme.getTextSecondary(context).withOpacity(0.6), fontSize: 13),
+      filled: true,
+      fillColor: isDark ? AppTheme.darkBg : const Color(0xFFF8FAFC),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: AppTheme.getBorder(context)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: AppTheme.getBorder(context)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: const BorderSide(color: AppTheme.primaryEmerald, width: 1.5),
+      ),
+    );
   }
 
   void _showResetConfirmDialog() {
+    final isDark = AppTheme.isDark(context);
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.darkCard,
+        backgroundColor: isDark ? AppTheme.darkCard : AppTheme.lightCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Reset Seluruh Data Lokal?',
           style: GoogleFonts.plusJakartaSans(
-            color: Colors.white,
+            color: AppTheme.getTextPrimary(context),
             fontWeight: FontWeight.w800,
             fontSize: 16,
           ),
         ),
         content: Text(
           'Tindakan ini akan mengosongkan seluruh riwayat mutasi tersimpan dan hitungan volume harian pada perangkat ini. Apakah Anda yakin?',
-          style: GoogleFonts.plusJakartaSans(color: Colors.white70, fontSize: 13),
+          style: GoogleFonts.plusJakartaSans(color: AppTheme.getTextSecondary(context), fontSize: 13),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal', style: TextStyle(color: Colors.white60)),
+            child: Text('Batal', style: TextStyle(color: AppTheme.getTextSecondary(context))),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -103,18 +311,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final user = AuthService().currentUser;
     final syncService = ApiSyncService();
+    final themeService = ThemeService();
+    final isDark = AppTheme.isDark(context);
 
     return Scaffold(
-      backgroundColor: AppTheme.darkBg,
+      backgroundColor: AppTheme.getBg(context),
       appBar: AppBar(
-        backgroundColor: AppTheme.darkCard,
+        backgroundColor: AppTheme.getCard(context),
         elevation: 0,
         title: Text(
           'Pengaturan & Profil',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            color: Colors.white,
+            color: AppTheme.getTextPrimary(context),
           ),
         ),
       ),
@@ -127,61 +337,199 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: AppTheme.darkCard,
+                color: AppTheme.getCard(context),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppTheme.darkBorder),
+                border: Border.all(color: AppTheme.getBorder(context)),
+                boxShadow: isDark
+                    ? null
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.04),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
               ),
-              child: Row(
+              child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 26,
-                    backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
-                    child: Text(
-                      user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'U',
-                      style: const TextStyle(
-                        color: AppTheme.primaryEmerald,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 28,
+                        backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
+                        child: Text(
+                          user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'U',
+                          style: const TextStyle(
+                            color: AppTheme.primaryEmerald,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user?.name ?? 'Kevin Naserwan',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.getTextPrimary(context),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              user?.email ?? 'kevin@example.com',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                color: AppTheme.getTextSecondary(context),
+                              ),
+                            ),
+                            if (user?.phoneNumber != null && user!.phoneNumber.isNotEmpty) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                user.phoneNumber,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  color: AppTheme.getTextSecondary(context),
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primaryTeal.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                user?.role ?? 'Head of Household (Suami)',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.primaryTeal,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _showEditProfileDialog,
+                      icon: const Icon(Icons.edit_rounded, size: 16),
+                      label: Text(
+                        'Edit & Lengkapi Data Profil',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primaryEmerald,
+                        side: const BorderSide(color: AppTheme.primaryEmerald),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          user?.name ?? 'Pengguna ReconX',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          user?.email ?? '',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white60),
-                        ),
-                        const SizedBox(height: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryTeal.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            user?.familyName ?? 'Keluarga Mandiri',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.primaryTeal,
-                            ),
-                          ),
-                        ),
-                      ],
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Theme Mode Selector (White / Dark Mode)
+            Text(
+              'TEMA TAMPILAN',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.getTextSecondary(context),
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.getCard(context),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.getBorder(context)),
+              ),
+              child: Row(
+                children: [
+                  _buildThemeOption(
+                    title: 'Gelap (Dark)',
+                    icon: Icons.dark_mode_rounded,
+                    isSelected: themeService.themeMode == ThemeMode.dark,
+                    onTap: () => themeService.setThemeMode(ThemeMode.dark),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildThemeOption(
+                    title: 'Terang (White)',
+                    icon: Icons.light_mode_rounded,
+                    isSelected: themeService.themeMode == ThemeMode.light,
+                    onTap: () => themeService.setThemeMode(ThemeMode.light),
+                  ),
+                  const SizedBox(width: 8),
+                  _buildThemeOption(
+                    title: 'Sistem',
+                    icon: Icons.smartphone_rounded,
+                    isSelected: themeService.themeMode == ThemeMode.system,
+                    onTap: () => themeService.setThemeMode(ThemeMode.system),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Bank & E-Wallet Notification Whitelist Settings
+            Text(
+              'SUMBER NOTIFIKASI AKTIF',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.getTextSecondary(context),
+                letterSpacing: 0.8,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.getCard(context),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.getBorder(context)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Pilih bank & e-wallet yang diizinkan untuk dibaca dan disinkronkan otomatis oleh Reconx:',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      color: AppTheme.getTextSecondary(context),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  _buildFilterTile('BCA (BCA Mobile, myBCA, blu)', 'bca', syncService),
+                  _buildFilterTile("Mandiri (Livin' by Mandiri)", 'mandiri', syncService),
+                  _buildFilterTile('BRI (BRImo)', 'bri', syncService),
+                  _buildFilterTile('BNI (BNI Mobile Banking)', 'bni', syncService),
+                  _buildFilterTile('SeaBank Indonesia', 'seabank', syncService),
+                  _buildFilterTile('GoPay / Gojek', 'gopay', syncService),
+                  _buildFilterTile('OVO', 'ovo', syncService),
+                  _buildFilterTile('DANA Indonesia', 'dana', syncService),
+                  _buildFilterTile('ShopeePay & SPayLater', 'shopee', syncService),
+                  _buildFilterTile('Superbank', 'superbank', syncService),
                 ],
               ),
             ),
@@ -194,7 +542,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
-                color: Colors.white54,
+                color: AppTheme.getTextSecondary(context),
                 letterSpacing: 0.8,
               ),
             ),
@@ -207,9 +555,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 return Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: AppTheme.darkCard,
+                    color: AppTheme.getCard(context),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.darkBorder),
+                    border: Border.all(color: AppTheme.getBorder(context)),
                   ),
                   child: Row(
                     children: [
@@ -231,7 +579,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                color: AppTheme.getTextPrimary(context),
                               ),
                             ),
                             const SizedBox(height: 2),
@@ -239,7 +587,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               'Minta verifikasi biometrik setiap kali aplikasi dibuka.',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
-                                color: Colors.white60,
+                                color: AppTheme.getTextSecondary(context),
                               ),
                             ),
                           ],
@@ -265,13 +613,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 24),
 
-            // Notification Interceptor Permission
+            // Notification Interceptor Permission Status
             Text(
               'STATUS NOTIFICATION INTERCEPTOR',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
-                color: Colors.white54,
+                color: AppTheme.getTextSecondary(context),
                 letterSpacing: 0.8,
               ),
             ),
@@ -279,9 +627,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.darkCard,
+                color: AppTheme.getCard(context),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.darkBorder),
+                border: Border.all(color: AppTheme.getBorder(context)),
               ),
               child: Column(
                 children: [
@@ -302,12 +650,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                color: AppTheme.getTextPrimary(context),
                               ),
                             ),
                             Text(
-                              'Intersepsi otomatis dari BCA, Mandiri, SeaBank, OVO, ShopeePay.',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white60),
+                              'Intersepsi otomatis dari bank dan e-wallet yang aktif.',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                color: AppTheme.getTextSecondary(context),
+                              ),
                             ),
                           ],
                         ),
@@ -326,70 +677,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         child: const Text('Aktifkan Izin di Android'),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Server Endpoint Configuration
-            Text(
-              'RECONX SERVER ENDPOINT',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                color: Colors.white54,
-                letterSpacing: 0.8,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.darkCard,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.darkBorder),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextField(
-                    controller: _urlController,
-                    style: const TextStyle(color: Colors.white, fontSize: 13),
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: AppTheme.darkBg,
-                      labelText: 'API Base URL',
-                      labelStyle: const TextStyle(color: Colors.white70),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isTesting ? null : _handleTestPing,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.darkBg,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: _isTesting
-                          ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                          : const Text('Test Koneksi Server'),
-                    ),
-                  ),
-                  if (_testResult != null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      _testResult!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _testResult!.startsWith('Connected') ? AppTheme.primaryEmerald : AppTheme.dangerRose,
-                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
@@ -419,7 +706,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
             const SizedBox(height: 14),
 
-            // Sign Out Button
+            // Sign Out Button (Firm Red Style per user request)
             ElevatedButton.icon(
               onPressed: _handleSignOut,
               icon: const Icon(Icons.logout_rounded, color: Colors.white),
@@ -427,11 +714,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 'Keluar dari Akun (Logout)',
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.w800,
+                  fontSize: 14,
                   color: Colors.white,
                 ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.darkCard,
+                backgroundColor: AppTheme.dangerRose,
+                foregroundColor: Colors.white,
+                elevation: 2,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
@@ -439,6 +729,79 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 20),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildThemeOption({
+    required String title,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? AppTheme.primaryEmerald.withOpacity(0.15) : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSelected ? AppTheme.primaryEmerald : Colors.transparent,
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 20,
+                color: isSelected ? AppTheme.primaryEmerald : AppTheme.getTextSecondary(context),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                title,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                  color: isSelected ? AppTheme.primaryEmerald : AppTheme.getTextSecondary(context),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterTile(String title, String key, ApiSyncService syncService) {
+    final enabled = syncService.appFilters[key] ?? true;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.getTextPrimary(context),
+              ),
+            ),
+          ),
+          Switch(
+            value: enabled,
+            activeColor: AppTheme.primaryEmerald,
+            onChanged: (val) {
+              syncService.toggleAppFilter(key, val);
+            },
+          ),
+        ],
       ),
     );
   }

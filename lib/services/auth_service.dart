@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class UserProfile {
   final String name;
   final String email;
+  final String phoneNumber;
   final String? photoUrl;
   final String role;
   final String token;
@@ -16,6 +17,7 @@ class UserProfile {
   UserProfile({
     required this.name,
     required this.email,
+    this.phoneNumber = '081234567890',
     this.photoUrl,
     required this.role,
     required this.token,
@@ -24,9 +26,34 @@ class UserProfile {
     this.familyInviteCode = 'FAM-KVN-8821',
   });
 
+  UserProfile copyWith({
+    String? name,
+    String? email,
+    String? phoneNumber,
+    String? photoUrl,
+    String? role,
+    String? token,
+    String? familyId,
+    String? familyName,
+    String? familyInviteCode,
+  }) {
+    return UserProfile(
+      name: name ?? this.name,
+      email: email ?? this.email,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      photoUrl: photoUrl ?? this.photoUrl,
+      role: role ?? this.role,
+      token: token ?? this.token,
+      familyId: familyId ?? this.familyId,
+      familyName: familyName ?? this.familyName,
+      familyInviteCode: familyInviteCode ?? this.familyInviteCode,
+    );
+  }
+
   Map<String, dynamic> toJson() => {
         'name': name,
         'email': email,
+        'phoneNumber': phoneNumber,
         'photoUrl': photoUrl,
         'role': role,
         'token': token,
@@ -38,6 +65,7 @@ class UserProfile {
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
         name: json['name'] ?? 'Kevin Naserwan',
         email: json['email'] ?? 'kevin.naserwan@gmail.com',
+        phoneNumber: json['phoneNumber'] ?? '081234567890',
         photoUrl: json['photoUrl'],
         role: json['role'] ?? 'Head of Household (Suami)',
         token: json['token'] ?? '',
@@ -89,6 +117,7 @@ class AuthService extends ChangeNotifier {
       final profile = UserProfile(
         name: name,
         email: email,
+        phoneNumber: '081234567890',
         photoUrl: photoUrl,
         role: 'Head of Household (Suami)',
         token: 'reconx_mobile_bearer_${DateTime.now().millisecondsSinceEpoch}',
@@ -112,18 +141,22 @@ class AuthService extends ChangeNotifier {
   Future<bool> registerOrLogin({
     required String name,
     required String email,
+    String? phoneNumber,
     String? familyName,
     String? inviteCode,
     String? role,
   }) async {
     try {
       final finalFamilyName = familyName?.isNotEmpty == true ? familyName! : 'Keluarga $name';
-      final finalInviteCode = inviteCode?.isNotEmpty == true ? inviteCode!.toUpperCase() : 'FAM-${name.length > 3 ? name.substring(0, 3).toUpperCase() : 'FAM'}-8821';
-      final finalRole = role?.isNotEmpty == true ? role! : 'Head of Household';
+      final finalInviteCode = inviteCode?.isNotEmpty == true
+          ? inviteCode!.toUpperCase()
+          : 'FAM-${name.length > 3 ? name.substring(0, 3).toUpperCase() : 'FAM'}-8821';
+      final finalRole = role?.isNotEmpty == true ? role! : 'Head of Household (Suami)';
 
       final profile = UserProfile(
         name: name,
         email: email,
+        phoneNumber: phoneNumber?.isNotEmpty == true ? phoneNumber! : '081234567890',
         photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=${Uri.encodeComponent(name)}',
         role: finalRole,
         token: 'reconx_mobile_bearer_${DateTime.now().millisecondsSinceEpoch}',
@@ -140,6 +173,35 @@ class AuthService extends ChangeNotifier {
       return true;
     } catch (e) {
       debugPrint('Custom Auth Error: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateProfile({
+    required String name,
+    required String email,
+    required String phoneNumber,
+    required String role,
+    required String familyName,
+  }) async {
+    if (_currentUser == null) return false;
+
+    try {
+      final updated = _currentUser!.copyWith(
+        name: name,
+        email: email,
+        phoneNumber: phoneNumber,
+        role: role,
+        familyName: familyName,
+      );
+
+      _currentUser = updated;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('reconx_mobile_user', jsonEncode(updated.toJson()));
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Update Profile Error: $e');
       return false;
     }
   }

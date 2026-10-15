@@ -7,6 +7,7 @@ class AppTheme {
   static const Color primaryTeal = Color(0xFF0D9488);
   static const Color primaryCyan = Color(0xFF06B6D4);
   static const Color dangerRose = Color(0xFFF43F5E);
+  static const Color warningAmber = Color(0xFFF59E0B);
 
   // Dark Theme Colors
   static const Color darkBg = Color(0xFF020617);
@@ -17,11 +18,37 @@ class AppTheme {
   static const Color darkTextSecondary = Color(0xFF94A3B8);
 
   // Light Theme Colors
-  static const Color lightBg = Color(0xFFF8FAFC);
+  static const Color lightBg = Color(0xFFF1F5F9);
   static const Color lightCard = Color(0xFFFFFFFF);
   static const Color lightCardBorder = Color(0xFFE2E8F0);
+  static const Color lightBorder = Color(0xFFE2E8F0);
   static const Color lightTextPrimary = Color(0xFF0F172A);
   static const Color lightTextSecondary = Color(0xFF64748B);
+
+  // Dynamic Theme Helpers
+  static bool isDark(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark;
+  }
+
+  static Color getBg(BuildContext context) {
+    return isDark(context) ? darkBg : lightBg;
+  }
+
+  static Color getCard(BuildContext context) {
+    return isDark(context) ? darkCard : lightCard;
+  }
+
+  static Color getBorder(BuildContext context) {
+    return isDark(context) ? darkBorder : lightBorder;
+  }
+
+  static Color getTextPrimary(BuildContext context) {
+    return isDark(context) ? darkTextPrimary : lightTextPrimary;
+  }
+
+  static Color getTextSecondary(BuildContext context) {
+    return isDark(context) ? darkTextSecondary : lightTextSecondary;
+  }
 
   // Dark Theme Config
   static ThemeData darkTheme = ThemeData(
@@ -34,7 +61,13 @@ class AppTheme {
       primary: primaryEmerald,
       secondary: primaryCyan,
       surface: darkCard,
-      background: darkBg,
+      error: dangerRose,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: darkCard,
+      foregroundColor: darkTextPrimary,
+      elevation: 0,
+      centerTitle: false,
     ),
     textTheme: GoogleFonts.plusJakartaSansTextTheme(
       ThemeData.dark().textTheme,
@@ -71,7 +104,13 @@ class AppTheme {
       primary: primaryEmerald,
       secondary: primaryTeal,
       surface: lightCard,
-      background: lightBg,
+      error: dangerRose,
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: lightCard,
+      foregroundColor: lightTextPrimary,
+      elevation: 0,
+      centerTitle: false,
     ),
     textTheme: GoogleFonts.plusJakartaSansTextTheme(
       ThemeData.light().textTheme,

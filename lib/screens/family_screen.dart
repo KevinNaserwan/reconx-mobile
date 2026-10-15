@@ -12,18 +12,19 @@ class FamilyScreen extends StatelessWidget {
     final user = AuthService().currentUser;
     final familyName = user?.familyName.isNotEmpty == true ? user!.familyName : 'Keluarga Anda';
     final inviteCode = user?.familyInviteCode.isNotEmpty == true ? user!.familyInviteCode : 'FAM-KVN-8821';
+    final isDark = AppTheme.isDark(context);
 
     return Scaffold(
-      backgroundColor: AppTheme.darkBg,
+      backgroundColor: AppTheme.getBg(context),
       appBar: AppBar(
-        backgroundColor: AppTheme.darkCard,
+        backgroundColor: AppTheme.getCard(context),
         elevation: 0,
         title: Text(
           'Household Financial Cluster',
           style: GoogleFonts.plusJakartaSans(
             fontSize: 18,
             fontWeight: FontWeight.w800,
-            color: Colors.white,
+            color: AppTheme.getTextPrimary(context),
           ),
         ),
       ),
@@ -36,14 +37,19 @@ class FamilyScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.darkCard,
+                color: AppTheme.getCard(context),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppTheme.darkBorder),
+                border: Border.all(color: AppTheme.getBorder(context)),
                 gradient: LinearGradient(
-                  colors: [
-                    AppTheme.primaryTeal.withOpacity(0.08),
-                    AppTheme.primaryEmerald.withOpacity(0.04),
-                  ],
+                  colors: isDark
+                      ? [
+                          AppTheme.primaryTeal.withOpacity(0.08),
+                          AppTheme.primaryEmerald.withOpacity(0.04),
+                        ]
+                      : [
+                          AppTheme.primaryEmerald.withOpacity(0.06),
+                          Colors.white,
+                        ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -66,71 +72,124 @@ class FamilyScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(
                     familyName,
+                    textAlign: TextAlign.center,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white,
+                      color: AppTheme.getTextPrimary(context),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Multi-Tenant Household Financial Cluster',
+                    'Multi-Tenant Household Financial Engine',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
-                      color: Colors.white60,
+                      color: AppTheme.getTextSecondary(context),
                     ),
                   ),
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 20),
 
-                  // PIN Card
+                  // Neat & Polished Voucher Style PIN Card
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.darkBg,
+                      color: isDark ? AppTheme.darkBg : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppTheme.primaryEmerald.withOpacity(0.4)),
+                      border: Border.all(
+                        color: AppTheme.primaryEmerald.withOpacity(0.35),
+                        width: 1.2,
+                      ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        Row(
                           children: [
+                            const Icon(Icons.key_rounded, size: 16, color: AppTheme.primaryEmerald),
+                            const SizedBox(width: 8),
                             Text(
-                              'PIN Undangan Pasangan / Keluarga:',
+                              'PIN Undangan Anggota Keluarga',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
-                                color: Colors.white54,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              inviteCode,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w900,
-                                color: AppTheme.primaryEmerald,
-                                letterSpacing: 1.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.getTextSecondary(context),
                               ),
                             ),
                           ],
                         ),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            Clipboard.setData(ClipboardData(text: inviteCode));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('PIN Undangan disalin ke clipboard!')),
-                            );
-                          },
-                          icon: const Icon(Icons.copy_rounded, size: 14, color: Colors.white),
-                          label: Text(
-                            'Salin PIN',
-                            style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF0F172A) : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppTheme.primaryEmerald.withOpacity(0.2),
+                            ),
                           ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryEmerald,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          child: Center(
+                            child: Text(
+                              inviteCode,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 3.0,
+                                color: AppTheme.primaryEmerald,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  Clipboard.setData(ClipboardData(text: inviteCode));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      backgroundColor: AppTheme.primaryEmerald,
+                                      behavior: SnackBarBehavior.floating,
+                                      content: Row(
+                                        children: [
+                                          const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
+                                          const SizedBox(width: 10),
+                                          Text(
+                                            'PIN $inviteCode berhasil disalin!',
+                                            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.copy_rounded, size: 16),
+                                label: Text(
+                                  'Salin PIN',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.primaryEmerald,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Masukkan PIN ini saat mendaftar di HP Pasangan untuk menghubungkan dompet ke cluster finansial keluarga.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10.5,
+                            color: AppTheme.getTextSecondary(context),
+                            height: 1.4,
                           ),
                         ),
                       ],
@@ -146,9 +205,9 @@ class FamilyScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.darkCard,
+                color: AppTheme.getCard(context),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.darkBorder),
+                border: Border.all(color: AppTheme.getBorder(context)),
               ),
               child: Row(
                 children: [
@@ -170,7 +229,7 @@ class FamilyScreen extends StatelessWidget {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                            color: AppTheme.getTextPrimary(context),
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -178,7 +237,7 @@ class FamilyScreen extends StatelessWidget {
                           'Transfer internal (suami transfer ke istri atau sebaliknya) otomatis terdeteksi dan tidak dihitung ganda sebagai pengeluaran keluarga.',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
-                            color: Colors.white60,
+                            color: AppTheme.getTextSecondary(context),
                             height: 1.4,
                           ),
                         ),
@@ -196,16 +255,17 @@ class FamilyScreen extends StatelessWidget {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: AppTheme.getTextPrimary(context),
               ),
             ),
             const SizedBox(height: 12),
 
             // Member 1 (Current User)
             _buildMemberCard(
-              name: user?.name ?? 'Anda',
-              role: user?.role ?? 'Kepala Keluarga (Suami)',
-              email: user?.email ?? '',
+              context: context,
+              name: user?.name ?? 'Kevin Naserwan',
+              role: user?.role ?? 'Head of Household (Suami)',
+              email: user?.email ?? 'kevin@example.com',
               deviceStatus: 'Device Ini (Aktif Syncing)',
               isOnline: true,
             ),
@@ -215,10 +275,10 @@ class FamilyScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.darkCard.withOpacity(0.6),
+                color: isDark ? AppTheme.darkCard.withOpacity(0.6) : Colors.white,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AppTheme.darkBorder,
+                  color: AppTheme.getBorder(context),
                   style: BorderStyle.solid,
                 ),
               ),
@@ -228,10 +288,10 @@ class FamilyScreen extends StatelessWidget {
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.06),
+                      color: AppTheme.primaryEmerald.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.person_add_alt_1_rounded, color: Colors.white54, size: 22),
+                    child: const Icon(Icons.person_add_alt_1_rounded, color: AppTheme.primaryEmerald, size: 22),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -243,7 +303,7 @@ class FamilyScreen extends StatelessWidget {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white70,
+                            color: AppTheme.getTextPrimary(context),
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -251,7 +311,7 @@ class FamilyScreen extends StatelessWidget {
                           'Bagikan PIN $inviteCode saat instal aplikasi di HP pasangan',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
-                            color: Colors.white38,
+                            color: AppTheme.getTextSecondary(context),
                           ),
                         ),
                       ],
@@ -267,6 +327,7 @@ class FamilyScreen extends StatelessWidget {
   }
 
   Widget _buildMemberCard({
+    required BuildContext context,
     required String name,
     required String role,
     required String email,
@@ -276,9 +337,9 @@ class FamilyScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.darkCard,
+        color: AppTheme.getCard(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.darkBorder),
+        border: Border.all(color: AppTheme.getBorder(context)),
       ),
       child: Row(
         children: [
@@ -301,7 +362,7 @@ class FamilyScreen extends StatelessWidget {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: AppTheme.getTextPrimary(context),
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -318,7 +379,10 @@ class FamilyScreen extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   '$role • $email',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white54),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    color: AppTheme.getTextSecondary(context),
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
