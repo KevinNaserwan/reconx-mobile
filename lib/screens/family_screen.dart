@@ -234,7 +234,7 @@ class FamilyScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Transfer internal (suami transfer ke istri atau sebaliknya) otomatis terdeteksi dan tidak dihitung ganda sebagai pengeluaran keluarga.',
+                          'Transfer internal (Kevin transfer ke Anan atau sebaliknya) otomatis terdeteksi dan tidak dihitung ganda sebagai pengeluaran bersama.',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
                             color: AppTheme.getTextSecondary(context),
@@ -251,7 +251,7 @@ class FamilyScreen extends StatelessWidget {
             const SizedBox(height: 24),
 
             Text(
-              'Anggota & Dompet Mandiri',
+              'Partner & Dompet Bersama',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
@@ -260,18 +260,31 @@ class FamilyScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
 
-            // Member 1 (Current User)
+            // Member 1 (Kevin Naserwan)
             _buildMemberCard(
               context: context,
               name: user?.name ?? 'Kevin Naserwan',
-              role: user?.role ?? 'Head of Household (Suami)',
+              role: user?.role ?? 'Kevin (Partner)',
               email: user?.email ?? 'kevin@example.com',
               deviceStatus: 'Device Ini (Aktif Syncing)',
               isOnline: true,
+              photoUrl: user?.photoUrl,
             ),
             const SizedBox(height: 10),
 
-            // Member 2 (Pasangan / Empty Invitation Slot)
+            // Member 2 (Anan)
+            _buildMemberCard(
+              context: context,
+              name: 'Anan',
+              role: 'Anan (Partner)',
+              email: 'anan@reconx.local',
+              deviceStatus: 'Terhubung (Companion Sync Aktif)',
+              isOnline: true,
+              photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Anan',
+            ),
+            const SizedBox(height: 10),
+
+            // Invitation Card
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -291,7 +304,7 @@ class FamilyScreen extends StatelessWidget {
                       color: AppTheme.primaryEmerald.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.person_add_alt_1_rounded, color: AppTheme.primaryEmerald, size: 22),
+                    child: const Icon(Icons.favorite_rounded, color: AppTheme.primaryEmerald, size: 22),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -299,7 +312,7 @@ class FamilyScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Undang Pasangan / Anggota Keluarga',
+                          'Partner Invitation Code',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
@@ -308,7 +321,7 @@ class FamilyScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'Bagikan PIN $inviteCode saat instal aplikasi di HP pasangan',
+                          'Gunakan PIN $inviteCode saat instal aplikasi di HP Anan',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
                             color: AppTheme.getTextSecondary(context),
@@ -333,6 +346,7 @@ class FamilyScreen extends StatelessWidget {
     required String email,
     required String deviceStatus,
     required bool isOnline,
+    String? photoUrl,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -343,13 +357,32 @@ class FamilyScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CircleAvatar(
-            backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
-            child: Text(
-              name.isNotEmpty ? name[0].toUpperCase() : 'U',
-              style: const TextStyle(color: AppTheme.primaryEmerald, fontWeight: FontWeight.bold),
+          if (photoUrl != null && photoUrl.isNotEmpty)
+            ClipOval(
+              child: Image.network(
+                photoUrl,
+                width: 44,
+                height: 44,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => CircleAvatar(
+                  radius: 22,
+                  backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
+                  child: Text(
+                    name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                    style: const TextStyle(color: AppTheme.primaryEmerald, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            )
+          else
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
+              child: Text(
+                name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                style: const TextStyle(color: AppTheme.primaryEmerald, fontWeight: FontWeight.bold),
+              ),
             ),
-          ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(

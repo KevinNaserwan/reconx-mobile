@@ -22,8 +22,8 @@ class UserProfile {
     required this.role,
     required this.token,
     this.familyId = 'fam-kevin-001',
-    this.familyName = 'Keluarga Kevin & Istri',
-    this.familyInviteCode = 'FAM-KVN-8821',
+    this.familyName = 'Kevin & Anan (Couple)',
+    this.familyInviteCode = 'COUPLE-KVN-ANN',
   });
 
   UserProfile copyWith({
@@ -67,11 +67,11 @@ class UserProfile {
         email: json['email'] ?? 'kevin.naserwan@gmail.com',
         phoneNumber: json['phoneNumber'] ?? '081234567890',
         photoUrl: json['photoUrl'],
-        role: json['role'] ?? 'Head of Household (Suami)',
+        role: json['role'] ?? 'Kevin (Partner)',
         token: json['token'] ?? '',
         familyId: json['familyId'] ?? 'fam-kevin-001',
-        familyName: json['familyName'] ?? 'Keluarga Kevin & Istri',
-        familyInviteCode: json['familyInviteCode'] ?? 'FAM-KVN-8821',
+        familyName: json['familyName'] ?? 'Kevin & Anan (Couple)',
+        familyInviteCode: json['familyInviteCode'] ?? 'COUPLE-KVN-ANN',
       );
 }
 
@@ -119,11 +119,11 @@ class AuthService extends ChangeNotifier {
         email: email,
         phoneNumber: '081234567890',
         photoUrl: photoUrl,
-        role: 'Head of Household (Suami)',
+        role: 'Kevin (Partner)',
         token: 'reconx_mobile_bearer_${DateTime.now().millisecondsSinceEpoch}',
         familyId: 'fam-kevin-001',
-        familyName: 'Keluarga Kevin & Istri',
-        familyInviteCode: 'FAM-KVN-8821',
+        familyName: 'Kevin & Anan (Couple)',
+        familyInviteCode: 'COUPLE-KVN-ANN',
       );
 
       _currentUser = profile;
@@ -145,19 +145,20 @@ class AuthService extends ChangeNotifier {
     String? familyName,
     String? inviteCode,
     String? role,
+    String? photoUrl,
   }) async {
     try {
-      final finalFamilyName = familyName?.isNotEmpty == true ? familyName! : 'Keluarga $name';
+      final finalFamilyName = familyName?.isNotEmpty == true ? familyName! : 'Kevin & Anan (Couple)';
       final finalInviteCode = inviteCode?.isNotEmpty == true
           ? inviteCode!.toUpperCase()
-          : 'FAM-${name.length > 3 ? name.substring(0, 3).toUpperCase() : 'FAM'}-8821';
-      final finalRole = role?.isNotEmpty == true ? role! : 'Head of Household (Suami)';
+          : 'COUPLE-KVN-ANN';
+      final finalRole = role?.isNotEmpty == true ? role! : 'Kevin (Partner)';
 
       final profile = UserProfile(
         name: name,
         email: email,
         phoneNumber: phoneNumber?.isNotEmpty == true ? phoneNumber! : '081234567890',
-        photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=${Uri.encodeComponent(name)}',
+        photoUrl: photoUrl ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=${Uri.encodeComponent(name)}',
         role: finalRole,
         token: 'reconx_mobile_bearer_${DateTime.now().millisecondsSinceEpoch}',
         familyId: 'fam-${DateTime.now().millisecondsSinceEpoch}',
@@ -183,6 +184,7 @@ class AuthService extends ChangeNotifier {
     required String phoneNumber,
     required String role,
     required String familyName,
+    String? photoUrl,
   }) async {
     if (_currentUser == null) return false;
 
@@ -193,6 +195,7 @@ class AuthService extends ChangeNotifier {
         phoneNumber: phoneNumber,
         role: role,
         familyName: familyName,
+        photoUrl: photoUrl ?? _currentUser!.photoUrl,
       );
 
       _currentUser = updated;

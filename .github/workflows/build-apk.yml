@@ -114,6 +114,7 @@ jobs:
           fi
           echo "Found APK: $APK_FILE"
           mkdir -p dist
+          cp "$APK_FILE" dist/Reconx-v1.3.3.apk
           cp "$APK_FILE" dist/Reconx-v1.3.2.apk
           cp "$APK_FILE" dist/Reconx-v1.3.1.apk
           cp "$APK_FILE" dist/Reconx-v1.3.0.apk
@@ -124,33 +125,34 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Reconx-v1.3.2-APK
-          path: dist/Reconx-v1.3.2.apk
+          name: Reconx-v1.3.3-APK
+          path: dist/Reconx-v1.3.3.apk
           retention-days: 30
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.3.2
-          name: "Reconx Android v1.3.2 (Motion & Interactive Edition)"
+          tag_name: v1.3.3
+          name: "Reconx Android v1.3.3 (In-App Live Camera & Kevin-Anan Couple Tracking)"
           draft: false
           prerelease: false
           overwrite: true
           body: |
-            ### Reconx Android v1.3.2 Motion & Interactive Release
-            
-            Peningkatan interaksi mikro (*micro-interactions*), animasi motion ala GoPay & perbankan modern:
-            
-            - ⏩ **Slide to Confirm (Geser untuk Simpan):** Konfirmasi nota hasil scan kini menggunakan interaksi geser kiri-ke-kanan (*drag-to-pay style*) dengan getaran haptik dan pegas elastis.
-            - 🎊 **Celebration Modal Dialog:** Animasi sukses pop-up dengan centang hijau berdenyut (*pulsing circle aura*), rincian nominal tebal, badge brand, dan opsi langsung ke mutasi atau scan ulang.
-            - 🏝️ **Dynamic Island / Floating In-App Banner:** Notifikasi melayang mulus dari atas layar saat ada transaksi bank/e-wallet baru yang terekonsiliasi otomatis.
-            - 📡 **Radar Pulse Heartbeat Motion:** Indikator sinkronisasi aktif di beranda kini memiliki animasi gelombang radar hidup menandakan AI agent aktif bekerja memantau transaksi.
-            - 🌐 **Multilingual & Enterprise Security:** 3 bahasa resmi (ID, EN, ZH), sensor saldo 👁️, dan export audit trail CSV.
-            
+            ### Reconx Android v1.3.3 Official Release
+
+            Pembaruan fitur & penyempurnaan UI/UX menyeluruh:
+
+            - 📷 **In-App Live Viewfinder & Shutter:** Kamera scanner nota kini terintegrasi langsung di dalam aplikasi (*in-app camera feed*). Mengetuk tombol shutter langsung mengambil foto seketika tanpa membuka aplikasi kamera sistem eksternal dan tanpa layar gelap (*no blank black box*).
+            - 🏷️ **Authentic Corporate Brand Badges:** Seluruh badge bank & dompet digital (BCA, Mandiri, BRI, BNI, SeaBank, Superbank, GoPay, OVO, DANA, ShopeePay, QRIS) kini menggunakan vektor resmi presisi tinggi dengan warna korporat asli tanpa teks bertumpuk di dalam badge icon.
+            - 👫 **Kevin & Anan (Couple Mode):** Data cluster telah direset ke tracking keuangan pasangan (pacaran / pre-marital) dengan anti-double counting khusus transfer antara Kevin dan Anan.
+            - 🖼️ **Google Account Profile Avatar:** Foto profil Google login kini otomatis ditampilkan di Header Beranda, Kartu Profil Akun, dan Anggota Pasangan, lengkap dengan opsi pengaturan URL foto profil custom.
+            - ⏩ **Slide to Confirm & Celebration Dialog:** Transisi mulus geser konfirmasi mutasi nota (*drag-to-pay style*) dan dialog sukses pop-up.
+
             #### 📥 Download Langsung:
-            Download file **`Reconx-v1.3.2.apk`** di bawah ini dan install langsung di HP Android Anda.
+            Download file **`Reconx-v1.3.3.apk`** di bawah ini dan install langsung di HP Android Anda.
           files: |
+            dist/Reconx-v1.3.3.apk
             dist/Reconx-v1.3.2.apk
             dist/Reconx-v1.3.1.apk
             dist/Reconx-v1.3.0.apk

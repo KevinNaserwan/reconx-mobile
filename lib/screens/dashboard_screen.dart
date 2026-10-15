@@ -112,9 +112,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 tooltip: 'Ganti Mode Tema (Terang / Gelap)',
                 onPressed: () => themeService.toggleTheme(),
               ),
-              IconButton(
-                icon: Icon(Icons.settings_outlined, color: AppTheme.getTextSecondary(context)),
-                onPressed: () {
+              GestureDetector(
+                onTap: () {
                   if (widget.onNavigateTab != null) {
                     widget.onNavigateTab!(4); // Navigate to Settings Tab
                   } else {
@@ -123,6 +122,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     );
                   }
                 },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                  child: Center(
+                    child: user?.photoUrl != null && user!.photoUrl.isNotEmpty
+                        ? ClipOval(
+                            child: Image.network(
+                              user.photoUrl,
+                              width: 32,
+                              height: 32,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => CircleAvatar(
+                                radius: 16,
+                                backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
+                                child: Text(
+                                  user.name.isNotEmpty ? user.name[0].toUpperCase() : 'K',
+                                  style: const TextStyle(color: AppTheme.primaryEmerald, fontSize: 13, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          )
+                        : CircleAvatar(
+                            radius: 16,
+                            backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
+                            child: Text(
+                              user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'K',
+                              style: const TextStyle(color: AppTheme.primaryEmerald, fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                  ),
+                ),
               ),
             ],
           ),

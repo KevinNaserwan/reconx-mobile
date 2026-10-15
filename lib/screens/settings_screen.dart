@@ -29,16 +29,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final emailCtrl = TextEditingController(text: user?.email ?? '');
     final phoneCtrl = TextEditingController(text: user?.phoneNumber ?? '');
     final familyCtrl = TextEditingController(text: user?.familyName ?? '');
-    String selectedRole = user?.role ?? 'Head of Household (Suami)';
+    final photoCtrl = TextEditingController(text: user?.photoUrl ?? '');
+    String selectedRole = user?.role ?? 'Kevin (Partner)';
 
     final isDark = AppTheme.isDark(context);
     final lang = LanguageService();
 
     final roles = [
-      'Head of Household (Suami)',
-      'Co-Head of Household (Istri)',
-      'Anggota Keluarga (Anak)',
-      'Akun Mandiri (Personal)',
+      'Kevin (Partner)',
+      'Anan (Partner)',
+      'Partner / Pasangan',
+      'Personal / Individu',
+      'Head of Household',
     ];
 
     if (!roles.contains(selectedRole)) {
@@ -85,13 +87,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Perbarui profil Anda untuk sinkronisasi rekonsiliasi keluarga.',
+                    'Perbarui profil Anda untuk sinkronisasi rekonsiliasi pasangan (couple).',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       color: AppTheme.getTextSecondary(context),
                     ),
                   ),
                   const SizedBox(height: 20),
+
+                  // Foto Profil (URL)
+                  _buildInputLabel('Foto Profil (URL Google / Avatar)', context),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: photoCtrl,
+                    style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 14),
+                    decoration: _inputDecoration('https://... (Foto Google atau Avatar)', context),
+                  ),
+                  const SizedBox(height: 14),
 
                   // Nama Lengkap
                   _buildInputLabel('Nama Lengkap', context),
@@ -126,7 +138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   const SizedBox(height: 14),
 
                   // Peran Finansial
-                  _buildInputLabel('Peran Finansial Dalam Keluarga', context),
+                  _buildInputLabel('Peran Finansial', context),
                   const SizedBox(height: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14),
@@ -157,13 +169,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Nama Cluster Keluarga
-                  _buildInputLabel('Nama Keluarga / Household', context),
+                  // Nama Cluster Pasangan / Keluarga
+                  _buildInputLabel('Nama Cluster Pasangan', context),
                   const SizedBox(height: 6),
                   TextField(
                     controller: familyCtrl,
                     style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 14),
-                    decoration: _inputDecoration('Keluarga Kevin & Istri', context),
+                    decoration: _inputDecoration('Kevin & Anan (Couple)', context),
                   ),
                   const SizedBox(height: 24),
 
@@ -174,6 +186,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       final e = emailCtrl.text.trim();
                       final p = phoneCtrl.text.trim();
                       final f = familyCtrl.text.trim();
+                      final ph = photoCtrl.text.trim();
 
                       if (n.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -187,7 +200,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         email: e.isNotEmpty ? e : (user?.email ?? ''),
                         phoneNumber: p,
                         role: selectedRole,
-                        familyName: f.isNotEmpty ? f : (user?.familyName ?? 'Keluarga'),
+                        familyName: f.isNotEmpty ? f : 'Kevin & Anan (Couple)',
+                        photoUrl: ph,
                       );
 
                       if (mounted) {
@@ -196,7 +210,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             backgroundColor: AppTheme.primaryEmerald,
-                            content: Text('Profil dan data pribadi berhasil disimpan!'),
+                            content: Text('Profil dan foto pribadi berhasil disimpan!'),
                           ),
                         );
                       }
@@ -358,18 +372,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Row(
                     children: [
-                      CircleAvatar(
-                        radius: 28,
-                        backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
-                        child: Text(
-                          user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'U',
-                          style: const TextStyle(
-                            color: AppTheme.primaryEmerald,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                      if (user?.photoUrl != null && user!.photoUrl.isNotEmpty)
+                        ClipOval(
+                          child: Image.network(
+                            user.photoUrl,
+                            width: 56,
+                            height: 56,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => CircleAvatar(
+                              radius: 28,
+                              backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
+                              child: Text(
+                                user.name.isNotEmpty ? user.name[0].toUpperCase() : 'K',
+                                style: const TextStyle(
+                                  color: AppTheme.primaryEmerald,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        CircleAvatar(
+                          radius: 28,
+                          backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
+                          child: Text(
+                            user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'K',
+                            style: const TextStyle(
+                              color: AppTheme.primaryEmerald,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
@@ -409,7 +445,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                user?.role ?? 'Head of Household (Suami)',
+                                user?.role ?? 'Kevin (Partner)',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,

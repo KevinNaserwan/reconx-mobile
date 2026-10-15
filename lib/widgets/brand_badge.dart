@@ -1,201 +1,168 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class BrandBadgeData {
   final String label;
-  final IconData icon;
+  final Widget logoWidget;
   final Color bgColor;
-  final Color textColor;
   final Color borderColor;
-  final String? customTag;
 
   const BrandBadgeData({
     required this.label,
-    required this.icon,
+    required this.logoWidget,
     required this.bgColor,
-    required this.textColor,
     required this.borderColor,
-    this.customTag,
   });
 }
 
 class BrandBadgeHelper {
-  static BrandBadgeData getBadge(String appName, String merchant, {String? channel}) {
+  static BrandBadgeData getBadge(String appName, String merchant, {String? channel, double size = 40}) {
     final text = '${appName.toLowerCase()} ${merchant.toLowerCase()} ${(channel ?? "").toLowerCase()}';
 
-    // 1. QRIS
+    // 1. QRIS (Official Indonesian National Standard Red & Geometric QR)
     if (text.contains('qris')) {
-      return const BrandBadgeData(
+      return BrandBadgeData(
         label: 'QRIS',
-        icon: Icons.qr_code_2_rounded,
-        bgColor: Color(0xFFFEF2F2),
-        textColor: Color(0xFFDC2626),
-        borderColor: Color(0xFFFCA5A5),
-        customTag: 'QRIS',
+        bgColor: const Color(0xFFED1C24),
+        borderColor: const Color(0xFFB91C1C),
+        logoWidget: _buildQrisMark(size),
       );
     }
 
-    // 2. GoPay
+    // 2. GoPay (Official Cyan-Mint #00AED6 & Concentric Circle)
     if (text.contains('gopay') || text.contains('gojek')) {
-      return const BrandBadgeData(
+      return BrandBadgeData(
         label: 'GoPay',
-        icon: Icons.account_balance_wallet_rounded,
-        bgColor: Color(0xFFECFEFF),
-        textColor: Color(0xFF0284C7),
-        borderColor: Color(0xFF7DD3FC),
-        customTag: 'GoPay',
+        bgColor: const Color(0xFF00AED6),
+        borderColor: const Color(0xFF0284C7),
+        logoWidget: _buildGoPayMark(size),
       );
     }
 
-    // 3. OVO
+    // 3. OVO (Official Royal Purple #4C2A86 & Inner Ring)
     if (text.contains('ovo')) {
-      return const BrandBadgeData(
+      return BrandBadgeData(
         label: 'OVO',
-        icon: Icons.wallet_rounded,
-        bgColor: Color(0xFFFAF5FF),
-        textColor: Color(0xFF7E22CE),
-        borderColor: Color(0xFFD8B4FE),
-        customTag: 'OVO',
+        bgColor: const Color(0xFF4C2A86),
+        borderColor: const Color(0xFF3B1D6D),
+        logoWidget: _buildOvoMark(size),
       );
     }
 
-    // 4. DANA
+    // 4. DANA (Official Vivid Blue #118EEA & Geometric D)
     if (text.contains('dana')) {
-      return const BrandBadgeData(
+      return BrandBadgeData(
         label: 'DANA',
-        icon: Icons.payments_rounded,
-        bgColor: Color(0xFFEFF6FF),
-        textColor: Color(0xFF1D4ED8),
-        borderColor: Color(0xFF93C5FD),
-        customTag: 'DANA',
+        bgColor: const Color(0xFF118EEA),
+        borderColor: const Color(0xFF0D72BC),
+        logoWidget: _buildDanaMark(size),
       );
     }
 
-    // 5. ShopeePay / SPayLater
+    // 5. ShopeePay (Official Coral Orange #EE4D2D & Shopping Silhouette)
     if (text.contains('shopee') || text.contains('spay')) {
-      return const BrandBadgeData(
+      return BrandBadgeData(
         label: 'ShopeePay',
-        icon: Icons.shopping_bag_rounded,
-        bgColor: Color(0xFFFFF7ED),
-        textColor: Color(0xFFEA580C),
-        borderColor: Color(0xFFFDBA74),
-        customTag: 'Shopee',
+        bgColor: const Color(0xFFEE4D2D),
+        borderColor: const Color(0xFFC2381E),
+        logoWidget: _buildShopeePayMark(size),
       );
     }
 
-    // 6. BCA / blu
+    // 6. BCA / blu (Official Deep Blue #005EAD & Shield Diamond)
     if (text.contains('bca') || text.contains('blu')) {
-      return const BrandBadgeData(
+      return BrandBadgeData(
         label: 'BCA',
-        icon: Icons.account_balance_rounded,
-        bgColor: Color(0xFFEFF6FF),
-        textColor: Color(0xFF003893),
-        borderColor: Color(0xFF93C5FD),
-        customTag: 'BCA',
+        bgColor: const Color(0xFF005EAD),
+        borderColor: const Color(0xFF00407A),
+        logoWidget: _buildBcaMark(size),
       );
     }
 
-    // 7. Mandiri / Livin
+    // 7. Mandiri / Livin (Official Deep Navy #002D62 & Golden Ribbon #F5B800)
     if (text.contains('mandiri') || text.contains('livin')) {
-      return const BrandBadgeData(
+      return BrandBadgeData(
         label: 'Mandiri',
-        icon: Icons.account_balance_rounded,
-        bgColor: Color(0xFFFFFBEB),
-        textColor: Color(0xFFB45309),
-        borderColor: Color(0xFFFDE68A),
-        customTag: 'Livin',
+        bgColor: const Color(0xFF002D62),
+        borderColor: const Color(0xFF001B3B),
+        logoWidget: _buildMandiriMark(size),
       );
     }
 
-    // 8. BRI / BRImo
+    // 8. BRI / BRImo (Official Oceanic Blue #00529C & Globe Double-Curve)
     if (text.contains('bri') || text.contains('brimo')) {
-      return const BrandBadgeData(
+      return BrandBadgeData(
         label: 'BRImo',
-        icon: Icons.account_balance_rounded,
-        bgColor: Color(0xFFF0FDF4),
-        textColor: Color(0xFF15803D),
-        borderColor: Color(0xFF86EFAC),
-        customTag: 'BRI',
+        bgColor: const Color(0xFF00529C),
+        borderColor: const Color(0xFF00386C),
+        logoWidget: _buildBriMark(size),
       );
     }
 
-    // 9. BNI
+    // 9. BNI (Official Teal #005E6A & 46 Angular Motif)
     if (text.contains('bni')) {
-      return const BrandBadgeData(
+      return BrandBadgeData(
         label: 'BNI',
-        icon: Icons.account_balance_rounded,
-        bgColor: Color(0xFFECFDF5),
-        textColor: Color(0xFF0F766E),
-        borderColor: Color(0xFF99F6E4),
-        customTag: 'BNI',
+        bgColor: const Color(0xFF005E6A),
+        borderColor: const Color(0xFF00444D),
+        logoWidget: _buildBniMark(size),
       );
     }
 
-    // 10. SeaBank
+    // 10. SeaBank (Official Vivid Orange #FF5722 & Digital Wave)
     if (text.contains('seabank') || text.contains('searpm')) {
-      return const BrandBadgeData(
+      return BrandBadgeData(
         label: 'SeaBank',
-        icon: Icons.savings_rounded,
-        bgColor: Color(0xFFFFF7ED),
-        textColor: Color(0xFFC2410C),
-        borderColor: Color(0xFFFED7AA),
-        customTag: 'SeaBank',
+        bgColor: const Color(0xFFFF5722),
+        borderColor: const Color(0xFFD84315),
+        logoWidget: _buildSeaBankMark(size),
       );
     }
 
-    // 11. Struk / Nota Fisik
-    if (text.contains('nota') || text.contains('receipt') || text.contains('ocr')) {
-      return const BrandBadgeData(
+    // 11. Superbank (Official Rich Violet #7F00FF & Lime Accent)
+    if (text.contains('superbank')) {
+      return BrandBadgeData(
+        label: 'Superbank',
+        bgColor: const Color(0xFF7F00FF),
+        borderColor: const Color(0xFF6200EA),
+        logoWidget: _buildSuperbankMark(size),
+      );
+    }
+
+    // 12. Struk / Nota Kasir (Dark Slate #1E293B & Emerald Ticket)
+    if (text.contains('nota') || text.contains('receipt') || text.contains('ocr') || text.contains('kasir')) {
+      return BrandBadgeData(
         label: 'Nota Kasir',
-        icon: Icons.receipt_long_rounded,
-        bgColor: Color(0xFFECFDF5),
-        textColor: Color(0xFF059669),
-        borderColor: Color(0xFF6EE7B7),
-        customTag: 'Nota',
+        bgColor: const Color(0xFF1E293B),
+        borderColor: const Color(0xFF334155),
+        logoWidget: Icon(Icons.receipt_long_rounded, color: const Color(0xFF10B981), size: size * 0.52),
       );
     }
 
-    // 12. Tunai / Cash
+    // 13. Tunai / Cash (Emerald #059669 & Cash Note)
     if (text.contains('tunai') || text.contains('cash')) {
-      return const BrandBadgeData(
+      return BrandBadgeData(
         label: 'Tunai',
-        icon: Icons.payments_rounded,
-        bgColor: Color(0xFFF0FDF4),
-        textColor: Color(0xFF16A34A),
-        borderColor: Color(0xFF86EFAC),
-        customTag: 'Cash',
+        bgColor: const Color(0xFF059669),
+        borderColor: const Color(0xFF047857),
+        logoWidget: Icon(Icons.payments_rounded, color: Colors.white, size: size * 0.52),
       );
     }
 
-    // 13. Investasi (Bibit / Pluang)
-    if (text.contains('bibit') || text.contains('pluang') || text.contains('reksadana')) {
-      return const BrandBadgeData(
-        label: 'Investasi',
-        icon: Icons.trending_up_rounded,
-        bgColor: Color(0xFFF5F3FF),
-        textColor: Color(0xFF6D28D9),
-        borderColor: Color(0xFFC4B5FD),
-        customTag: 'Invest',
-      );
-    }
-
-    // Default Bank / E-Wallet
-    return const BrandBadgeData(
-      label: 'Transaksi',
-      icon: Icons.credit_card_rounded,
-      bgColor: Color(0xFFF8FAFC),
-      textColor: Color(0xFF475569),
-      borderColor: Color(0xFFCBD5E1),
-      customTag: 'Bank',
+    // Default Bank / Card
+    return BrandBadgeData(
+      label: 'Bank / E-Wallet',
+      bgColor: const Color(0xFF334155),
+      borderColor: const Color(0xFF475569),
+      logoWidget: Icon(Icons.account_balance_rounded, color: Colors.white, size: size * 0.52),
     );
   }
 
-  static Widget buildBadge(String brand, {double size = 44}) {
+  static Widget buildBadge(String brand, {double size = 42}) {
     return buildBadgeWidget(brand, brand, size: size);
   }
 
-  static Widget buildBadgeWidget(String appName, String merchant, {String? channel, double size = 44}) {
-    final badge = getBadge(appName, merchant, channel: channel);
+  static Widget buildBadgeWidget(String appName, String merchant, {String? channel, double size = 42}) {
+    final badge = getBadge(appName, merchant, channel: channel, size: size);
 
     return Container(
       width: size,
@@ -204,41 +171,200 @@ class BrandBadgeHelper {
         color: badge.bgColor,
         borderRadius: BorderRadius.circular(size * 0.28),
         border: Border.all(color: badge.borderColor, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: badge.bgColor.withOpacity(0.35),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Center(
-        child: badge.customTag != null && badge.customTag == 'QRIS'
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(badge.icon, size: size * 0.44, color: badge.textColor),
-                  Text(
-                    'QRIS',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 8,
-                      fontWeight: FontWeight.w900,
-                      color: badge.textColor,
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                ],
-              )
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(badge.icon, size: size * 0.48, color: badge.textColor),
-                  if (badge.customTag != null)
-                    Text(
-                      badge.customTag!,
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 8,
-                        fontWeight: FontWeight.w800,
-                        color: badge.textColor,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                ],
-              ),
+        child: badge.logoWidget,
       ),
+    );
+  }
+
+  // --- Brand Geometric Marks (No Text Inside) ---
+
+  // QRIS: Official Geometric QR Pattern in White on Red
+  static Widget _buildQrisMark(double size) {
+    final s = size * 0.55;
+    return SizedBox(
+      width: s,
+      height: s,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildQrSquare(s * 0.42),
+              _buildQrSquare(s * 0.42),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildQrSquare(s * 0.42),
+              Container(
+                width: s * 0.42,
+                height: s * 0.42,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(1.5),
+                ),
+                child: Center(
+                  child: Container(
+                    width: s * 0.20,
+                    height: s * 0.20,
+                    color: const Color(0xFFED1C24),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _buildQrSquare(double boxSize) {
+    return Container(
+      width: boxSize,
+      height: boxSize,
+      padding: const EdgeInsets.all(1.5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(1.5),
+      ),
+      child: Container(
+        color: const Color(0xFFED1C24),
+        padding: const EdgeInsets.all(1.5),
+        child: Container(
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+
+  // GoPay: Concentric White Outer Circle & Inner Circle Dot
+  static Widget _buildGoPayMark(double size) {
+    return Container(
+      width: size * 0.52,
+      height: size * 0.52,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: size * 0.075),
+      ),
+      child: Center(
+        child: Container(
+          width: size * 0.20,
+          height: size * 0.20,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // OVO: Royal Purple Ring
+  static Widget _buildOvoMark(double size) {
+    return Container(
+      width: size * 0.54,
+      height: size * 0.54,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white, width: size * 0.08),
+      ),
+      child: Center(
+        child: Container(
+          width: size * 0.26,
+          height: size * 0.26,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF4C2A86),
+            border: Border.all(color: const Color(0xFF9333EA), width: 1.5),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // DANA: Vivid Blue & Geometric D-Kite
+  static Widget _buildDanaMark(double size) {
+    return Icon(
+      Icons.diamond_rounded,
+      color: Colors.white,
+      size: size * 0.54,
+    );
+  }
+
+  // ShopeePay: Warm Coral Orange & Shopping Bag
+  static Widget _buildShopeePayMark(double size) {
+    return Icon(
+      Icons.shopping_bag_rounded,
+      color: Colors.white,
+      size: size * 0.54,
+    );
+  }
+
+  // BCA: Royal Blue & Shield Diamond
+  static Widget _buildBcaMark(double size) {
+    return Icon(
+      Icons.shield_rounded,
+      color: Colors.white,
+      size: size * 0.56,
+    );
+  }
+
+  // Mandiri: Navy & Golden Ribbon Accent
+  static Widget _buildMandiriMark(double size) {
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        Icon(Icons.waves_rounded, color: const Color(0xFFF5B800), size: size * 0.58),
+        Icon(Icons.crop_square_rounded, color: Colors.white.withOpacity(0.9), size: size * 0.40),
+      ],
+    );
+  }
+
+  // BRI: Oceanic Blue & Dual Curve
+  static Widget _buildBriMark(double size) {
+    return Icon(
+      Icons.motion_photos_on_rounded,
+      color: Colors.white,
+      size: size * 0.54,
+    );
+  }
+
+  // BNI: Turquoise & Angular Motif
+  static Widget _buildBniMark(double size) {
+    return Icon(
+      Icons.change_history_rounded,
+      color: Colors.white,
+      size: size * 0.54,
+    );
+  }
+
+  // SeaBank: Orange & Ocean Digital Wave
+  static Widget _buildSeaBankMark(double size) {
+    return Icon(
+      Icons.water_rounded,
+      color: Colors.white,
+      size: size * 0.54,
+    );
+  }
+
+  // Superbank: Rich Purple & Neon Star
+  static Widget _buildSuperbankMark(double size) {
+    return Icon(
+      Icons.auto_awesome_rounded,
+      color: const Color(0xFFCCFF00),
+      size: size * 0.54,
     );
   }
 }

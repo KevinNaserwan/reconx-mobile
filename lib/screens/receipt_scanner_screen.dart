@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -20,9 +21,14 @@ class ReceiptScannerScreen extends StatefulWidget {
 }
 
 class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _laserController;
   late Animation<double> _laserAnimation;
+
+  CameraController? _cameraController;
+  bool _isCameraReady = false;
+  bool _isInitializingCamera = false;
+  String? _cameraErrorMessage;
 
   NumberFormat get currencyFormat {
     try {
@@ -66,6 +72,7 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _laserController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
@@ -74,10 +81,88 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
     _laserAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _laserController, curve: Curves.easeInOut),
     );
+
+    _initCamera();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final CameraController? cameraController = _cameraController;
+    if (cameraController == null || !cameraController.value.isInitialized) {
+      return;
+    }
+
+    if (state == AppLifecycleState.inactive) {
+      cameraController.dispose();
+    } else if (state == AppLifecycleState.resumed) {
+      _initCamera();
+    }
+  }
+
+  Future<void> _initCamera() async {
+    if (_isInitializingCamera) return;
+    setState(() {
+      _isInitializingCamera = true;
+      _cameraErrorMessage = null;
+    });
+
+    try {
+      final hasPerm = await PermissionService().requestCameraPermission(context);
+      if (!hasPerm) {
+        if (mounted) {
+          setState(() {
+            _isInitializingCamera = false;
+            _cameraErrorMessage = 'Izin kamera diperlukan untuk live viewfinder.';
+          });
+        }
+        return;
+      }
+
+      final cameras = await availableCameras();
+      if (cameras.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _isInitializingCamera = false;
+            _cameraErrorMessage = 'Kamera tidak terdeteksi pada perangkat ini.';
+          });
+        }
+        return;
+      }
+
+      final backCamera = cameras.firstWhere(
+        (c) => c.lensDirection == CameraLensDirection.back,
+        orElse: () => cameras.first,
+      );
+
+      final controller = CameraController(
+        backCamera,
+        ResolutionPreset.high,
+        enableAudio: false,
+      );
+
+      await controller.initialize();
+
+      if (mounted) {
+        setState(() {
+          _cameraController = controller;
+          _isCameraReady = true;
+          _isInitializingCamera = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isInitializingCamera = false;
+          _cameraErrorMessage = 'Gagal memuat viewfinder kamera: $e';
+        });
+      }
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _cameraController?.dispose();
     _laserController.dispose();
     _merchantController.dispose();
     _amountController.dispose();
@@ -85,24 +170,39 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
   }
 
   Future<void> _handleCapture(bool fromCamera) async {
-    if (fromCamera) {
-      final hasPerm = await PermissionService().requestCameraPermission(context);
-      if (!hasPerm) return;
-    }
-
     setState(() => _isProcessing = true);
 
-    final xFile = fromCamera
-        ? await ReceiptScannerService().captureReceiptCamera()
-        : await ReceiptScannerService().pickReceiptGallery();
+    String? photoPath;
 
-    if (xFile == null) {
+    if (fromCamera) {
+      // In-app direct capture if camera controller is active
+      if (_cameraController != null && _cameraController!.value.isInitialized) {
+        try {
+          final xFile = await _cameraController!.takePicture();
+          photoPath = xFile.path;
+        } catch (e) {
+          debugPrint('Error taking picture in-app: $e');
+        }
+      }
+
+      // Fallback if in-app camera wasn't ready
+      if (photoPath == null) {
+        final xFile = await ReceiptScannerService().captureReceiptCamera();
+        photoPath = xFile?.path;
+      }
+    } else {
+      // Pick from gallery
+      final xFile = await ReceiptScannerService().pickReceiptGallery();
+      photoPath = xFile?.path;
+    }
+
+    if (photoPath == null) {
       setState(() => _isProcessing = false);
       return;
     }
 
-    // Run intelligent parser
-    final result = ReceiptScannerService().parseReceiptImage(xFile.path);
+    // Run intelligent Indonesian OCR parser
+    final result = ReceiptScannerService().parseReceiptImage(photoPath);
 
     _merchantController.text = result.merchant;
     _amountController.text = result.amount.toInt().toString();
@@ -185,22 +285,79 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Simulated Camera Preview Mesh Background
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: const BoxDecoration(
-              gradient: RadialGradient(
-                center: Alignment.center,
-                radius: 1.2,
-                colors: [
-                  Color(0xFF0F172A),
-                  Color(0xFF020617),
-                  Colors.black,
-                ],
+          // Live In-App Camera Viewfinder or smart loading/fallback
+          if (_isCameraReady && _cameraController != null && _cameraController!.value.isInitialized)
+            SizedBox.expand(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _cameraController!.value.previewSize?.height ?? size.width,
+                  height: _cameraController!.value.previewSize?.width ?? size.height,
+                  child: CameraPreview(_cameraController!),
+                ),
+              ),
+            )
+          else
+            Container(
+              width: double.infinity,
+              height: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.center,
+                  radius: 1.2,
+                  colors: [
+                    Color(0xFF0F172A),
+                    Color(0xFF020617),
+                    Colors.black,
+                  ],
+                ),
+              ),
+              child: Center(
+                child: _isInitializingCamera
+                    ? Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(color: AppTheme.primaryEmerald),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Menyiapkan Kamera In-App...',
+                            style: GoogleFonts.plusJakartaSans(
+                              color: Colors.white70,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      )
+                    : (_cameraErrorMessage != null
+                        ? Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.videocam_off_rounded, color: Colors.amber, size: 44),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _cameraErrorMessage!,
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.plusJakartaSans(color: Colors.white70, fontSize: 13),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: _initCamera,
+                                  icon: const Icon(Icons.refresh_rounded, size: 16),
+                                  label: const Text('Coba Lagi'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppTheme.primaryEmerald,
+                                    foregroundColor: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : null),
               ),
             ),
-          ),
 
           // Central Viewfinder Cutout Mask
           Center(
@@ -212,7 +369,7 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
                   // Viewfinder Border with Corner Accents
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
                         color: AppTheme.primaryEmerald.withOpacity(0.5),
@@ -304,8 +461,18 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
                         _isTorchOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
                         color: _isTorchOn ? AppTheme.primaryEmerald : Colors.white,
                       ),
-                      onPressed: () {
-                        setState(() => _isTorchOn = !_isTorchOn);
+                      onPressed: () async {
+                        if (_cameraController != null && _cameraController!.value.isInitialized) {
+                          try {
+                            final newTorch = !_isTorchOn;
+                            await _cameraController!.setFlashMode(newTorch ? FlashMode.torch : FlashMode.off);
+                            setState(() => _isTorchOn = newTorch);
+                          } catch (e) {
+                            debugPrint('Torch error: $e');
+                          }
+                        } else {
+                          setState(() => _isTorchOn = !_isTorchOn);
+                        }
                       },
                     ),
                   ),
