@@ -109,9 +109,9 @@ class ReceiptScannerService {
         }
       }
 
-      // STRICT VALIDATION 3: If no valid amount and no financial keywords, this is NOT a receipt!
-      if (detectedAmount <= 0 && !hasReceiptKeywords) {
-        debugPrint('[OCR] Image is not a receipt or bill (no amount or keywords).');
+      // STRICT VALIDATION 3: Image MUST contain both a valid price/amount AND financial receipt context
+      if (detectedAmount <= 0 || !hasReceiptKeywords) {
+        debugPrint('[OCR] Image is not a valid receipt (missing positive amount or financial keywords).');
         return null;
       }
 

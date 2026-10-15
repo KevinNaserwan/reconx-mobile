@@ -1,4 +1,5 @@
 import os
+import shutil
 
 # 1. Update AndroidManifest.xml permissions and service
 manifest_path = 'android/app/src/main/AndroidManifest.xml'
@@ -36,7 +37,18 @@ if os.path.exists(manifest_path):
         f.write(c)
     print("AndroidManifest.xml updated successfully.")
 
-# 2. Configure persistent release keystore in build.gradle
+# 2. Configure Proguard rules for ML Kit & R8
+proguard_src = 'custom_android/proguard-rules.pro'
+proguard_dst = 'android/app/proguard-rules.pro'
+if os.path.exists(proguard_src):
+    shutil.copyfile(proguard_src, proguard_dst)
+    print(f"Copied {proguard_src} to {proguard_dst}")
+else:
+    with open(proguard_dst, 'w') as f:
+        f.write("-dontwarn com.google.mlkit.**\n-keep class com.google.mlkit.** { *; }\n-dontwarn com.google_mlkit_text_recognition.**\n-keep class com.google_mlkit_text_recognition.** { *; }\n")
+    print("Created default proguard-rules.pro")
+
+# 3. Configure persistent release keystore & disable shrinker in build.gradle
 signing_block = """
     signingConfigs {
         release {
@@ -54,9 +66,23 @@ for gf in ['android/app/build.gradle', 'android/app/build.gradle.kts']:
             txt = f.read()
         if 'signingConfigs {' not in txt and 'buildTypes {' in txt:
             txt = txt.replace('buildTypes {', signing_block + '\n    buildTypes {', 1)
-            txt = txt.replace('signingConfig signingConfigs.debug', 'signingConfig signingConfigs.release')
-            txt = txt.replace('signingConfig = signingConfigs.debug', 'signingConfig = signingConfigs.release')
-            txt = txt.replace('signingConfig = signingConfigs.getByName("debug")', 'signingConfig = signingConfigs.getByName("release")')
+        
+        # Replace signing config and disable R8 minification/shrinking for MLKit compatibility
+        if 'signingConfig signingConfigs.debug' in txt:
+            txt = txt.replace(
+                'signingConfig signingConfigs.debug',
+                'signingConfig signingConfigs.release\n            minifyEnabled false\n            shrinkResources false\n            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"'
+            )
+        elif 'signingConfig = signingConfigs.debug' in txt:
+            txt = txt.replace(
+                'signingConfig = signingConfigs.debug',
+                'signingConfig = signingConfigs.release\n            minifyEnabled = false\n            shrinkResources = false\n            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")'
+            )
+        elif 'signingConfig = signingConfigs.getByName("debug")' in txt:
+            txt = txt.replace(
+                'signingConfig = signingConfigs.getByName("debug")',
+                'signingConfig = signingConfigs.getByName("release")\n            isMinifyEnabled = false\n            isShrinkResources = false\n            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")'
+            )
         with open(gf, 'w') as f:
             f.write(txt)
-        print(f"Signing configured in {gf}")
+        print(f"Build configuration and signing configured in {gf}")

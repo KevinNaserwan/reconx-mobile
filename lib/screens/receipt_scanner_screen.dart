@@ -850,7 +850,7 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
 
             // Slide to Confirm (GoPay / Banking Style Drag to Confirm)
             SlideToConfirm(
-              text: 'Geser untuk Simpan Mutasi >>>',
+              text: 'Geser untuk Simpan Mutasi',
               isLoading: _isProcessing,
               onConfirmed: _handleConfirmSync,
             ),
