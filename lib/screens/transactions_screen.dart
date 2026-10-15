@@ -103,6 +103,71 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
+  void _showResetConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.getCard(context),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(Icons.delete_sweep_rounded, color: AppTheme.dangerRose, size: 24),
+            const SizedBox(width: 10),
+            Text(
+              'Reset Data Mutasi',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+                color: AppTheme.getTextPrimary(context),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Seluruh riwayat transaksi mutasi lokal akan dikosongkan (0 transaksi). Anda dapat memulai pencatatan dari awal lagi.',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 13,
+            color: AppTheme.getTextSecondary(context),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Batal',
+              style: TextStyle(color: AppTheme.getTextSecondary(context)),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              HapticFeedback.mediumImpact();
+              await ApiSyncService().resetAllData();
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    backgroundColor: AppTheme.primaryEmerald,
+                    content: Text(
+                      'Riwayat mutasi berhasil dikosongkan (0 transaksi).',
+                      style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black),
+                    ),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.dangerRose,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Reset Sekarang'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showTransactionDetails(SyncedTransaction tx) {
     final isDark = AppTheme.isDark(context);
 
@@ -268,6 +333,11 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             icon: Icon(Icons.file_download_outlined, color: AppTheme.getTextSecondary(context)),
             tooltip: LanguageService().tr('export_csv'),
             onPressed: () => _handleExportCSV(ApiSyncService().history),
+          ),
+          IconButton(
+            icon: Icon(Icons.delete_sweep_outlined, color: AppTheme.getTextSecondary(context)),
+            tooltip: 'Reset Data Mutasi',
+            onPressed: () => _showResetConfirmationDialog(),
           ),
           IconButton(
             icon: const Icon(Icons.qr_code_scanner_rounded, color: AppTheme.primaryEmerald),

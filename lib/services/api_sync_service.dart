@@ -105,6 +105,13 @@ class ApiSyncService extends ChangeNotifier {
       }
     }
 
+    // Automatic one-time clean reset for v1.3.10 release
+    final hasResetV1310 = prefs.getBool('reconx_clean_reset_v1310_done') ?? false;
+    if (!hasResetV1310) {
+      await resetAllData();
+      await prefs.setBool('reconx_clean_reset_v1310_done', true);
+    }
+
     _recalculateTodayMetrics();
 
     await checkPermission();
@@ -197,9 +204,17 @@ class ApiSyncService extends ChangeNotifier {
     _history.clear();
     _syncedCountToday = 0;
     _syncedVolumeToday = 0.0;
+    _processedNotificationKeys.clear();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('reconx_saved_history');
+    await prefs.remove('reconx_processed_keys');
     notifyListeners();
+
+    // Async reset on backend server
+    try {
+      final uri = Uri.parse('$_backendUrl/transactions/reset');
+      http.post(uri).timeout(const Duration(seconds: 4));
+    } catch (_) {}
   }
 
   void _startNativeListener() {

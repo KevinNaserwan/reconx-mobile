@@ -114,6 +114,7 @@ jobs:
           fi
           echo "Found APK: $APK_FILE"
           mkdir -p dist
+          cp "$APK_FILE" dist/Reconx-v1.3.10.apk
           cp "$APK_FILE" dist/Reconx-v1.3.9.apk
           cp "$APK_FILE" dist/Reconx-v1.3.8.apk
           cp "$APK_FILE" dist/Reconx-v1.3.7.apk
@@ -127,35 +128,33 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Reconx-v1.3.9-APK
-          path: dist/Reconx-v1.3.9.apk
+          name: Reconx-v1.3.10-APK
+          path: dist/Reconx-v1.3.10.apk
           retention-days: 30
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.3.9
-          name: "Reconx Android v1.3.9 (Auto MLKit OCR, GMT+7 WIB Timezone & Phantom Notification Hardening)"
+          tag_name: v1.3.10
+          name: "Reconx Android v1.3.10 (Clean Ledger Reset & Manual Reset Action)"
           draft: false
           prerelease: false
           overwrite: true
           body: |
-            ### Reconx Android v1.3.9 Official Release
+            ### Reconx Android v1.3.10 Official Release
 
-            Pembaruan komprehensif stabilitas notifikasi bank real-time, zona waktu, model OCR, dan responsivitas pengaturan:
+            Pembaruan pembersihan total data mutasi (*Fresh Clean State*) dan aksi reset mandiri:
 
-            - ⚡ **Instant Settings & Language Switching:** Perubahan bahasa (ID, EN, ZH) dan toggle sumber notifikasi kini ter-update secara instan di UI tanpa perlu ganti tema terlebih dahulu.
-            - ⏰ **Zona Waktu Akurat GMT+7 (WIB):** Seluruh timestamp transaksi di Beranda, Mutasi, dan Detail transaksi kini secara eksplisit terkonversi dan berlabel waktu WIB (GMT+7).
-            - 🛡️ **Pencegahan Notifikasi Phantom & Spam:** Notifikasi promosi, flash sale, voucher diskon, dan background service sistem (misal BCA Keyboard) difilter secara ketat di sisi native Kotlin dan Dart, memastikan hanya transaksi finansial riil yang masuk mutasi.
-            - 📑 **Dukungan Format Rupiah Bank Indonesia:** Parser nominal kini mendukung format lengkap dengan sen (misal `Rp 10.500,00`, `Rp 10,500.00`, `Rp 10.500,-`), mencegah nilai keliru atau nominal terlewat.
-            - 📷 **Google ML Kit OCR Model Auto-Download & Fallback:** Menambahkan dependensi OCR resmi di `AndroidManifest.xml` agar Google Play Services langsung mengunduh model OCR Latin secara otomatis, serta alur konfirmasi struk otomatis tanpa pesan error "Nota tidak terdeteksi".
+            - 🧹 **Pembersihan Otomatis Data Mutasi Lokal (Clean State):** Begitu aplikasi versi ini dibuka, seluruh riwayat transaksi mutasi dan cache deduplikasi lokal otomatis di-reset bersih kembali ke 0 transaksi.
+            - 🔄 **Tombol Reset Mandiri di Halaman Mutasi:** Ditambahkan tombol aksi *sweep* (ikon sapu) di pojok kanan atas halaman Mutasi dengan dialog konfirmasi aman, sehingga Anda dapat mengosongkan riwayat mutasi lokal kapan saja tanpa perlu uninstal aplikasi.
+            - 🌐 **Sinkronisasi Reset ke Server Ledger:** Aksi reset juga secara otomatis mengirimkan sinyal pembersihan ke backend internal ledger.
 
             #### 📥 Download Langsung:
-            Download file **`Reconx-v1.3.9.apk`** di bawah ini dan pasang langsung di HP Android Anda.
+            Download file **`Reconx-v1.3.10.apk`** di bawah ini dan pasang langsung di HP Android Anda.
           files: |
+            dist/Reconx-v1.3.10.apk
             dist/Reconx-v1.3.9.apk
             dist/Reconx-v1.3.8.apk
-            dist/Reconx-v1.3.7.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
