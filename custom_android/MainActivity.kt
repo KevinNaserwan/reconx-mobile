@@ -15,8 +15,32 @@ class MainActivity : FlutterFragmentActivity() {
 
     private var eventSink: EventChannel.EventSink? = null
 
+    override fun onResume() {
+        super.onResume()
+        tryRebindListener()
+    }
+
+    private fun tryRebindListener() {
+        try {
+            val componentName = ComponentName(this, ReconXNotificationListener::class.java)
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                ReconXNotificationListener.requestRebind(componentName)
+            }
+        } catch (e: Exception) {
+            try {
+                val componentName = ComponentName(this, ReconXNotificationListener::class.java)
+                val pm = packageManager
+                pm.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
+                pm.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
+            } catch (e2: Exception) {}
+        }
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        // Ensure notification listener binder is bound
+        tryRebindListener()
 
         // MethodChannel: Check, request Notification Access, and sync active notifications
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL).setMethodCallHandler { call, result ->
@@ -32,19 +56,16 @@ class MainActivity : FlutterFragmentActivity() {
                     result.success(true)
                 }
                 "syncActiveNotifications" -> {
+                    if (ReconXNotificationListener.instance == null) {
+                        tryRebindListener()
+                    }
                     val count = ReconXNotificationListener.instance?.syncActiveNotifications() ?: 0
                     result.success(count)
                 }
                 "rebindListenerService" -> {
-                    try {
-                        val componentName = ComponentName(this, ReconXNotificationListener::class.java)
-                        val pm = packageManager
-                        pm.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
-                        pm.setComponentEnabledSetting(componentName, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
-                        result.success(true)
-                    } catch (e: Exception) {
-                        result.success(false)
-                    }
+                    tryRebindListener()
+                    val count = ReconXNotificationListener.instance?.syncActiveNotifications() ?: 0
+                    result.success(true)
                 }
                 else -> result.notImplemented()
             }

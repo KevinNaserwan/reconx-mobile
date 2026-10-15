@@ -249,6 +249,7 @@ class ApiSyncService extends ChangeNotifier {
   /// Scans all active notifications currently sitting in the Android notification shade/tray
   Future<int> syncActiveNotifications() async {
     try {
+      await rebindListenerService();
       final res = await _methodChannel.invokeMethod('syncActiveNotifications');
       debugPrint('[ApiSyncService] syncActiveNotifications returned: $res');
       return (res is int) ? res : 0;
@@ -346,6 +347,7 @@ class ApiSyncService extends ChangeNotifier {
     String? notificationKey,
   }) async {
     final user = AuthService().currentUser;
+    final fullText = '$title $content';
 
     // DEDUPLICATION GUARD 1: Key Check (exact notification instance)
     final uniqueKey = notificationKey ?? '${appPackage}_${postTime ?? 0}_${title}_$content'.hashCode.toString();
@@ -355,7 +357,7 @@ class ApiSyncService extends ChangeNotifier {
     }
 
     // DEDUPLICATION GUARD 2: Rapid Duplicate Prevention (Same app + same amount within 60s)
-    final candidateAmount = _extractAmountClientSide(content);
+    final candidateAmount = _extractAmountClientSide(fullText);
     final now = DateTime.now();
     final isRecentDuplicate = _history.any((tx) {
       if (tx.packageName.toLowerCase() == appPackage.toLowerCase() &&
@@ -415,7 +417,7 @@ class ApiSyncService extends ChangeNotifier {
     }
 
     // Client-side fallback if server is unreachable
-    final fallbackAmount = _extractAmountClientSide(content);
+    final fallbackAmount = _extractAmountClientSide(fullText);
     final fallbackItem = SyncedTransaction(
       id: 'MOB-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}',
       appName: appName ?? _resolveAppName(appPackage),
@@ -423,7 +425,7 @@ class ApiSyncService extends ChangeNotifier {
       title: title,
       content: content,
       amount: fallbackAmount,
-      merchant: _extractMerchantClientSide(content),
+      merchant: _extractMerchantClientSide(fullText),
       channel: 'OFFLINE_QUEUED',
       timestamp: DateTime.now(),
       status: 'QUEUED_LOCAL',
@@ -458,8 +460,8 @@ class ApiSyncService extends ChangeNotifier {
   }
 
   double _extractAmountClientSide(String text) {
-    // 1. Try explicit Rp / IDR pattern (e.g. "Rp 25.000", "Rp25.000", "IDR 150.000,00")
-    final reg = RegExp(r'(?:Rp|IDR)\s*([0-9]{1,3}(?:[.,][0-9]{3})*(?:[.,][0-9]{2})?|[0-9]+)', caseSensitive: false);
+    // 1. Explicit Rp / IDR pattern (e.g. "rp 10.500", "Rp 25.000", "Rp.10.500,00", "IDR 150.000")
+    final reg = RegExp(r'(?:Rp|IDR)\s*[:.]?\s*([0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{2})?|[0-9]+)', caseSensitive: false);
     final match = reg.firstMatch(text);
     if (match != null) {
       final raw = match.group(1)!;
@@ -468,8 +470,8 @@ class ApiSyncService extends ChangeNotifier {
       if (val != null && val > 0) return val;
     }
 
-    // 2. Generic thousands pattern (e.g. "25.000", "150.000")
-    final numReg = RegExp(r'([0-9]{1,3}(?:[.,][0-9]{3})+)', caseSensitive: false);
+    // 2. Generic thousands with dot/comma (e.g. "10.500", "150.000")
+    final numReg = RegExp(r'(?:^|[^\d])([0-9]{1,3}(?:[.,][0-9]{3})+)(?:[^\d]|$)', caseSensitive: false);
     final numMatch = numReg.firstMatch(text);
     if (numMatch != null) {
       final cleaned = numMatch.group(1)!.replaceAll(RegExp(r'[^0-9]'), '');
@@ -481,11 +483,22 @@ class ApiSyncService extends ChangeNotifier {
   }
 
   String _extractMerchantClientSide(String text) {
-    final reg = RegExp(r'(?:ke|di|merchant|pada|toko)\s+([A-Za-z0-9\s\.\-]{3,30})', caseSensitive: false);
+    final lower = text.toLowerCase();
+    if (lower.contains('indomaret')) return 'Indomaret';
+    if (lower.contains('alfamart')) return 'Alfamart';
+    if (lower.contains('alfamidi')) return 'Alfamidi';
+    if (lower.contains('superindo')) return 'Super Indo';
+    if (lower.contains('hypermart')) return 'Hypermart';
+    if (lower.contains('starbucks')) return 'Starbucks Coffee';
+    if (lower.contains('mcdonald') || lower.contains('mcd')) return "McDonald's";
+    if (lower.contains('kfc')) return 'KFC Indonesia';
+    if (lower.contains('pertamina') || lower.contains('spbu')) return 'SPBU Pertamina';
+
+    final reg = RegExp(r'(?:ke|di|merchant|pada|toko|outlet)\s+([A-Za-z0-9\s\.\-]{2,35})', caseSensitive: false);
     final match = reg.firstMatch(text);
     if (match != null) {
       final candidate = match.group(1)!.trim();
-      final cleaned = candidate.split(RegExp(r'(?:berhasil|sukses|pada|sebesar|rp|idr)', caseSensitive: false)).first.trim();
+      final cleaned = candidate.split(RegExp(r'(?:berhasil|sukses|pada|sebesar|rp|idr|tanggal|jam|via)', caseSensitive: false)).first.trim();
       if (cleaned.isNotEmpty && cleaned.length >= 2) return cleaned;
     }
     return 'Merchant QRIS';

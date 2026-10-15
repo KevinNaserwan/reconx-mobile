@@ -272,47 +272,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showResetConfirmDialog() {
-    final isDark = AppTheme.isDark(context);
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: isDark ? AppTheme.darkCard : AppTheme.lightCard,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Reset Seluruh Data Lokal?',
-          style: GoogleFonts.plusJakartaSans(
-            color: AppTheme.getTextPrimary(context),
-            fontWeight: FontWeight.w800,
-            fontSize: 16,
-          ),
-        ),
-        content: Text(
-          'Tindakan ini akan mengosongkan seluruh riwayat mutasi tersimpan dan hitungan volume harian pada perangkat ini. Apakah Anda yakin?',
-          style: GoogleFonts.plusJakartaSans(color: AppTheme.getTextSecondary(context), fontSize: 13),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Batal', style: TextStyle(color: AppTheme.getTextSecondary(context))),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              await ApiSyncService().resetAllData();
-              if (mounted) {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Semua data mutasi lokal berhasil di-reset.')),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.dangerRose),
-            child: const Text('Ya, Reset Data', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
 
   Future<void> _handleSignOut() async {
     await AuthService().signOut();
@@ -792,26 +751,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
 
             const SizedBox(height: 32),
-
-            // Factory Reset Local Data Button
-            OutlinedButton.icon(
-              onPressed: _showResetConfirmDialog,
-              icon: const Icon(Icons.delete_sweep_rounded, color: AppTheme.dangerRose),
-              label: Text(
-                lang.tr('reset_data'),
-                style: GoogleFonts.plusJakartaSans(
-                  color: AppTheme.dangerRose,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: AppTheme.dangerRose),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-
-            const SizedBox(height: 14),
 
             // Sign Out Button (Firm Red Style per user request)
             ElevatedButton.icon(

@@ -63,8 +63,8 @@ class ReceiptScannerService {
       final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
       final rawText = recognizedText.text.trim();
 
-      // STRICT VALIDATION 1: Empty or negligible text
-      if (rawText.isEmpty || rawText.length < 5) {
+      // VALIDATION 1: Empty or negligible text (only reject if completely illegible)
+      if (rawText.isEmpty || rawText.length < 4) {
         debugPrint('[OCR] No legible text detected on image.');
         return null;
       }
@@ -72,17 +72,25 @@ class ReceiptScannerService {
       final lines = rawText.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
       if (lines.isEmpty) return null;
 
-      // STRICT VALIDATION 2: Receipt/Financial context checks
       final lowerAll = rawText.toLowerCase();
+
+      // Broad Indonesian receipt & financial keywords
       final hasReceiptKeywords = RegExp(
-        r'(?i)(total|subtotal|jumlah|harga|rp|idr|tunai|cash|kembali|struk|nota|kasir|pembayaran|qris|bca|mandiri|bri|bni|seabank|ovo|gopay|dana|shopee|toko|mart|cafe|resto|kopi|transaksi|rekening)'
+        r'(?i)(total|subtotal|jumlah|harga|rp|idr|tunai|cash|kembali|struk|nota|kasir|pembayaran|qris|bca|mandiri|bri|bni|seabank|ovo|gopay|dana|shopee|toko|mart|cafe|resto|kopi|transaksi|rekening|indomaret|alfamart|alfamidi|superindo|hypermart|transmart|yomart|circle|dan\+dan|lawson|faktur|bon|kuitansi|pos|cashier|item|qty|ppn|disc|potongan|belanja|outlet|pt\b)'
       ).hasMatch(lowerAll);
 
-      // Search for price/nominal in lines
+      // Search for price/nominal in lines (prioritize lines with total, jumlah, bayar, rp)
       double detectedAmount = 0.0;
       for (final line in lines.reversed) {
         final lowerLine = line.toLowerCase();
-        if (lowerLine.contains('total') || lowerLine.contains('jumlah') || lowerLine.contains('bayar') || lowerLine.contains('rp') || lowerLine.contains('tagihan')) {
+        if (lowerLine.contains('total') ||
+            lowerLine.contains('jumlah') ||
+            lowerLine.contains('bayar') ||
+            lowerLine.contains('rp') ||
+            lowerLine.contains('tagihan') ||
+            lowerLine.contains('tunai') ||
+            lowerLine.contains('cash') ||
+            lowerLine.contains('grand')) {
           final matches = RegExp(r'([0-9]{1,3}(?:[.,][0-9]{3})+|[0-9]{4,})').allMatches(line);
           for (final m in matches) {
             final cleaned = m.group(1)!.replaceAll(RegExp(r'[^0-9]'), '');
@@ -95,36 +103,61 @@ class ReceiptScannerService {
         }
       }
 
-      // Fallback search across all lines for currency amounts if no keyword was explicit
+      // Fallback search across all lines for any currency amount (e.g. 10.500)
       if (detectedAmount <= 0) {
         for (final line in lines) {
           final matches = RegExp(r'([0-9]{1,3}(?:[.,][0-9]{3})+|[0-9]{4,})').allMatches(line);
           for (final m in matches) {
             final cleaned = m.group(1)!.replaceAll(RegExp(r'[^0-9]'), '');
             final val = double.tryParse(cleaned);
-            if (val != null && val >= 1000 && val > detectedAmount) {
+            if (val != null && val >= 500 && val > detectedAmount) {
               detectedAmount = val;
             }
           }
         }
       }
 
-      // STRICT VALIDATION 3: Image MUST contain both a valid price/amount AND financial receipt context
-      if (detectedAmount <= 0 || !hasReceiptKeywords) {
-        debugPrint('[OCR] Image is not a valid receipt (missing positive amount or financial keywords).');
+      // If no financial keywords AND no amount detected AND very short text, reject as non-receipt
+      if (detectedAmount <= 0 && !hasReceiptKeywords && rawText.length < 15) {
+        debugPrint('[OCR] Image lacks financial context or legible receipt data.');
         return null;
       }
 
-      // Extract store / merchant name from the topmost lines
+      // Extract store / merchant name (check well-known Indonesian brands first)
       String merchant = 'Merchant / Toko';
-      for (int i = 0; i < lines.length && i < 4; i++) {
-        final candidate = lines[i];
-        if (candidate.length >= 3 &&
-            !RegExp(r'^[0-9\s/:\-]+$').hasMatch(candidate) &&
-            !candidate.toLowerCase().contains('selamat') &&
-            !candidate.toLowerCase().contains('terima kasih')) {
-          merchant = candidate;
-          break;
+      if (lowerAll.contains('indomaret')) {
+        merchant = 'Indomaret';
+      } else if (lowerAll.contains('alfamidi')) {
+        merchant = 'Alfamidi';
+      } else if (lowerAll.contains('alfamart')) {
+        merchant = 'Alfamart';
+      } else if (lowerAll.contains('superindo') || lowerAll.contains('super indo')) {
+        merchant = 'Super Indo';
+      } else if (lowerAll.contains('hypermart')) {
+        merchant = 'Hypermart';
+      } else if (lowerAll.contains('transmart')) {
+        merchant = 'Transmart';
+      } else if (lowerAll.contains('starbucks')) {
+        merchant = 'Starbucks Coffee';
+      } else if (lowerAll.contains('kfc')) {
+        merchant = 'KFC Indonesia';
+      } else if (lowerAll.contains('mcdonald') || lowerAll.contains('mcd')) {
+        merchant = "McDonald's";
+      } else if (lowerAll.contains('spbu') || lowerAll.contains('pertamina')) {
+        merchant = 'SPBU Pertamina';
+      } else {
+        // Fallback to top lines that look like a business name
+        for (int i = 0; i < lines.length && i < 5; i++) {
+          final candidate = lines[i];
+          if (candidate.length >= 3 &&
+              !RegExp(r'^[0-9\s/:\-]+$').hasMatch(candidate) &&
+              !candidate.toLowerCase().contains('selamat') &&
+              !candidate.toLowerCase().contains('terima kasih') &&
+              !candidate.toLowerCase().contains('jl.') &&
+              !candidate.toLowerCase().contains('jalan')) {
+            merchant = candidate;
+            break;
+          }
         }
       }
 
@@ -146,13 +179,15 @@ class ReceiptScannerService {
         paymentMethod = 'Debit BRI';
       } else if (lowerAll.contains('seabank')) {
         paymentMethod = 'QRIS SeaBank';
+      } else if (lowerAll.contains('blu')) {
+        paymentMethod = 'blu by BCA';
       } else if (lowerAll.contains('tunai') || lowerAll.contains('cash')) {
         paymentMethod = 'Tunai (Cash)';
       }
 
       // Detect category
       String category = 'Konsumsi & F&B';
-      if (lowerAll.contains('indomaret') || lowerAll.contains('alfamart') || lowerAll.contains('superindo') || lowerAll.contains('minimarket')) {
+      if (lowerAll.contains('indomaret') || lowerAll.contains('alfamart') || lowerAll.contains('alfamidi') || lowerAll.contains('superindo') || lowerAll.contains('minimarket')) {
         category = 'Belanja Harian & Minimarket';
       } else if (lowerAll.contains('spbu') || lowerAll.contains('pertamina') || lowerAll.contains('shell')) {
         category = 'Transportasi & Bahan Bakar';
@@ -169,7 +204,8 @@ class ReceiptScannerService {
             !line.toLowerCase().contains('total') &&
             !line.toLowerCase().contains('bayar') &&
             !line.toLowerCase().contains('kembali') &&
-            !line.toLowerCase().contains('terima kasih')) {
+            !line.toLowerCase().contains('terima kasih') &&
+            !line.toLowerCase().contains('selamat datang')) {
           if (items.length < 5) {
             items.add(line);
           }
@@ -184,7 +220,7 @@ class ReceiptScannerService {
         paymentMethod: paymentMethod,
         category: category,
         detectedItems: items.isNotEmpty ? items : [merchant],
-        confidenceScore: 0.95,
+        confidenceScore: detectedAmount > 0 ? 0.98 : 0.85,
       );
     } catch (e) {
       debugPrint('[OCR] Processing error: $e');

@@ -119,30 +119,6 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             ),
             actions: [
               IconButton(
-                icon: const Icon(Icons.sync_rounded, color: AppTheme.primaryEmerald),
-                tooltip: 'Pindai Ulang Notifikasi Status Bar',
-                onPressed: () async {
-                  final count = await syncService.syncActiveNotifications();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        backgroundColor: count > 0 ? AppTheme.primaryEmerald : const Color(0xFF1E293B),
-                        content: Text(
-                          count > 0
-                              ? 'Sukses mencatat $count transaksi dari notifikasi aktif di HP!'
-                              : 'Notifikasi diperiksa. Semua transaksi aktif sudah tercatat rapi tanpa duplikat.',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            color: count > 0 ? Colors.black : Colors.white,
-                          ),
-                        ),
-                        duration: const Duration(seconds: 3),
-                      ),
-                    );
-                  }
-                },
-              ),
-              IconButton(
                 icon: Icon(
                   _isBalanceMasked ? Icons.visibility_off_rounded : Icons.visibility_rounded,
                   color: AppTheme.getTextSecondary(context),
@@ -211,6 +187,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             backgroundColor: isDark ? AppTheme.darkCard : Colors.white,
             onRefresh: () async {
               await syncService.checkPermission();
+              await syncService.rebindListenerService();
               final count = await syncService.syncActiveNotifications();
               if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -231,7 +208,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
               }
             },
             child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+              padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

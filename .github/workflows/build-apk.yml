@@ -114,6 +114,7 @@ jobs:
           fi
           echo "Found APK: $APK_FILE"
           mkdir -p dist
+          cp "$APK_FILE" dist/Reconx-v1.3.7.apk
           cp "$APK_FILE" dist/Reconx-v1.3.6.apk
           cp "$APK_FILE" dist/Reconx-v1.3.5.apk
           cp "$APK_FILE" dist/Reconx-v1.3.4.apk
@@ -124,35 +125,35 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Reconx-v1.3.6-APK
-          path: dist/Reconx-v1.3.6.apk
+          name: Reconx-v1.3.7-APK
+          path: dist/Reconx-v1.3.7.apk
           retention-days: 30
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.3.6
-          name: "Reconx Android v1.3.6 (Tray Notification Sync & Anti-Duplicate Guard)"
+          tag_name: v1.3.7
+          name: "Reconx Android v1.3.7 (Auto-Rebind Notification Interceptor & Smart Receipt OCR)"
           draft: false
           prerelease: false
           overwrite: true
           body: |
-            ### Reconx Android v1.3.6 Official Release
+            ### Reconx Android v1.3.7 Official Release
 
-            Fitur baru pemindaian notifikasi aktif di status bar & proteksi anti-duplikasi:
+            Pembaruan sistem intersepsi notifikasi Android, sinkronisasi pull-to-refresh alami, dan toleransi pemindaian nota fisik:
 
-            - 📥 **Active Notification Tray Scanner (`getActiveNotifications`):** Mampu membaca riwayat notifikasi transaksi yang masih bertengger di laci/status bar HP (belum di-close/swipe), sehingga transaksi yang sudah lewat tetap dapat tercatat otomatis saat aplikasi dibuka atau di-refresh.
-            - 🛡️ **Zero Duplicate Protection (Multi-Layer Deduplication Guard):** Dilengkapi sistem pencegahan duplikasi ganda berlapis (Kombinasi Key Notifikasi Android + Hashes Cache + Window Transaksi Sama <60 detik) sehingga dijamin **TIDAK AKAN PERNAH** tercatat dobel/ganda.
-            - 🔄 **Pull-to-Refresh & Sync Button:** Cukup tarik layar Beranda ke bawah (*swipe down pull-to-refresh*) atau tekan ikon sinkronisasi di pojok kanan atas untuk memindai ulang notifikasi HP kapan saja.
-            - ⚡ **blu BCA & Banking BigText Support:** Dukungan penuh untuk format pesan panjang transaksi QRIS blu by BCA Digital (`com.bcadigital.blu`), myBCA, Livin', BRImo, GoPay, dan OVO.
+            - ⚡ **Auto-Rebind NotificationListener:** Otomatis memicu `requestRebind` saat aplikasi dibuka atau kembali dari background (`onResume`), mencegah service tersuspensi oleh manajemen baterai Android OS.
+            - 📥 **Pencocokan Lengkap Notifikasi QRIS (blu by BCA & E-Wallet):** Menggabungkan judul, teks isi, dan subteks sehingga format notifikasi transaksi seperti `"yes, transaksi qris berhasil! transaksi di indomaret rp 10.500"` terdeteksi utuh (nominal Rp 10.500 dan merchant Indomaret langsung terpetakan).
+            - 🔄 **Native Pull-to-Refresh:** Menghapus tombol sinkronisasi manual di AppBar dan mengaktifkan `AlwaysScrollableScrollPhysics` agar gestur tarik layar ke bawah (*pull-down*) bekerja mulus di Android untuk memindai notifikasi HP.
+            - 🧾 **Smart Indonesian Receipt OCR:** Deteksi cerdas merek ritel (Indomaret, Alfamart, Alfamidi, Superindo, SPBU, dll.) dengan toleransi pencarian nominal yang fleksibel tanpa penolakan prematur.
+            - 🧹 **Pembersihan Pengaturan Akun:** Tombol *Reset Seluruh Data Mutasi Lokal* telah dihilangkan dari halaman Akun.
 
             #### 📥 Download Langsung:
-            Download file **`Reconx-v1.3.6.apk`** di bawah ini dan pasang langsung di HP Android Anda.
+            Download file **`Reconx-v1.3.7.apk`** di bawah ini dan pasang langsung di HP Android Anda.
           files: |
+            dist/Reconx-v1.3.7.apk
             dist/Reconx-v1.3.6.apk
             dist/Reconx-v1.3.5.apk
-            dist/Reconx-v1.3.4.apk
-            dist/Reconx-v1.3.3.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

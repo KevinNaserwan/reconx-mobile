@@ -110,15 +110,19 @@ class ReconXNotificationListener : NotificationListenerService() {
 
         val effectiveTitle = if (titleBig.isNotEmpty()) titleBig else title
 
-        // Prioritize bigText if available, or build combined content
-        val effectiveContent = when {
-            bigText.isNotEmpty() -> bigText
-            joinedLines.isNotEmpty() -> joinedLines
-            text.isNotEmpty() && subText.isNotEmpty() -> "$text ($subText)"
-            text.isNotEmpty() -> text
-            summaryText.isNotEmpty() -> summaryText
-            infoText.isNotEmpty() -> infoText
-            else -> effectiveTitle
+        // Combine all text segments so no details (e.g. amount or store) are discarded
+        val contentPieces = mutableListOf<String>()
+        if (text.isNotEmpty()) contentPieces.add(text)
+        if (bigText.isNotEmpty() && bigText != text) contentPieces.add(bigText)
+        if (joinedLines.isNotEmpty() && joinedLines != text && joinedLines != bigText) contentPieces.add(joinedLines)
+        if (subText.isNotEmpty() && !text.contains(subText)) contentPieces.add(subText)
+        if (summaryText.isNotEmpty() && summaryText != effectiveTitle) contentPieces.add(summaryText)
+        if (infoText.isNotEmpty()) contentPieces.add(infoText)
+
+        val effectiveContent = if (contentPieces.isNotEmpty()) {
+            contentPieces.joinToString(" ")
+        } else {
+            effectiveTitle
         }
 
         val combinedSearch = "$effectiveTitle $effectiveContent $packageName".lowercase()
