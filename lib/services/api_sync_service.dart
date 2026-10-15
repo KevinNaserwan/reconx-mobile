@@ -37,6 +37,39 @@ class ApiSyncService extends ChangeNotifier {
   double _incomeVolumeToday = 0.0;
   double get incomeVolumeToday => _incomeVolumeToday;
 
+  // Cumulative & Net Totals
+  double get todayNetBalance => _incomeVolumeToday - _expenseVolumeToday;
+  double get totalIncomeAllTime => _history.where((tx) => tx.isIncome).fold(0.0, (sum, tx) => sum + tx.amount);
+  double get totalExpenseAllTime => _history.where((tx) => !tx.isIncome).fold(0.0, (sum, tx) => sum + tx.amount);
+  double get totalNetBalanceAllTime => totalIncomeAllTime - totalExpenseAllTime;
+
+  // Family Members & Breakdown
+  List<String> get familyMembers {
+    final members = <String>{'Kevin (Saya)', 'Istri', 'Anak'};
+    for (final tx in _history) {
+      if (tx.member.isNotEmpty) {
+        members.add(tx.member);
+      }
+    }
+    return members.toList();
+  }
+
+  Map<String, double> getMemberMetrics(String member) {
+    final memberTxs = _history.where((tx) {
+      if (member == 'Kevin (Saya)') return tx.member == 'Kevin' || tx.member == 'Kevin (Saya)';
+      return tx.member.toLowerCase() == member.toLowerCase();
+    }).toList();
+
+    final inc = memberTxs.where((tx) => tx.isIncome).fold(0.0, (sum, tx) => sum + tx.amount);
+    final exp = memberTxs.where((tx) => !tx.isIncome).fold(0.0, (sum, tx) => sum + tx.amount);
+    return {
+      'income': inc,
+      'expense': exp,
+      'net': inc - exp,
+      'count': memberTxs.length.toDouble(),
+    };
+  }
+
   int _latencyMs = 28;
   int get latencyMs => _latencyMs;
 
@@ -111,12 +144,6 @@ class ApiSyncService extends ChangeNotifier {
       }
     }
 
-    // Automatic one-time clean reset for v1.3.10 release
-    final hasResetV1310 = prefs.getBool('reconx_clean_reset_v1310_done') ?? false;
-    if (!hasResetV1310) {
-      await resetAllData();
-      await prefs.setBool('reconx_clean_reset_v1310_done', true);
-    }
 
     _recalculateTodayMetrics();
 
@@ -323,6 +350,7 @@ class ApiSyncService extends ChangeNotifier {
     required double amount,
     required String category,
     required String paymentMethod,
+    String member = 'Kevin',
     List<String>? detectedItems,
     String? imagePath,
   }) async {
@@ -334,13 +362,15 @@ class ApiSyncService extends ChangeNotifier {
       appName: 'Scan Nota Fisik ($paymentMethod)',
       packageName: 'com.reconx.receipt.scanner',
       title: 'Nota: $merchant',
-      content: 'Pembayaran $category sebesar Rp ${amount.toInt()} di $merchant via $paymentMethod.',
+      content: 'Pembayaran $category sebesar Rp ${amount.toInt()} di $merchant via $paymentMethod oleh $member.',
       amount: amount,
       merchant: merchant,
       channel: 'RECEIPT_OCR_SCAN',
       timestamp: DateTime.now(),
       status: 'SYNCED_TO_LEDGER',
       type: 'EXPENSE',
+      member: member,
+      category: category,
     );
 
     _history.insert(0, item);
@@ -368,6 +398,76 @@ class ApiSyncService extends ChangeNotifier {
           'explicitAmount': amount,
           'explicitMerchant': merchant,
           'type': 'EXPENSE',
+          'member': member,
+          'category': category,
+        }),
+      ).timeout(const Duration(seconds: 4));
+    } catch (_) {}
+
+    return item;
+  }
+
+  /// Catat Mutasi Manual (Manual Money Entry for Income & Expense)
+  Future<SyncedTransaction> addManualTransaction({
+    required double amount,
+    required String merchant,
+    required String type, // 'INCOME' or 'EXPENSE'
+    required String appName, // e.g. 'Tunai (Cash)', 'BCA Mobile', 'GoPay'
+    required String category,
+    required String member,
+    String? notes,
+    DateTime? timestamp,
+  }) async {
+    final user = AuthService().currentUser;
+    final id = 'MAN-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
+    final txTime = timestamp ?? DateTime.now();
+    final isInc = type.toUpperCase() == 'INCOME';
+
+    final item = SyncedTransaction(
+      id: id,
+      appName: appName,
+      packageName: 'com.reconx.manual.entry',
+      title: isInc ? 'Uang Masuk: $merchant' : 'Uang Keluar: $merchant',
+      content: (notes != null && notes.isNotEmpty)
+          ? notes
+          : '${isInc ? "Pemasukan" : "Pengeluaran"} $category via $appName oleh $member.',
+      amount: amount,
+      merchant: merchant,
+      channel: 'MANUAL_ENTRY',
+      timestamp: txTime,
+      status: 'SYNCED_TO_LEDGER',
+      type: type,
+      member: member,
+      category: category,
+    );
+
+    _history.insert(0, item);
+    _recalculateTodayMetrics();
+    await _saveHistoryToPrefs();
+    _newTransactionController.add(item);
+    notifyListeners();
+
+    // Async sync to backend
+    try {
+      final uri = Uri.parse('$_backendUrl/mobile/sync-notification');
+      http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${user?.token ?? ""}',
+        },
+        body: jsonEncode({
+          'appPackage': 'com.reconx.manual.entry',
+          'appName': appName,
+          'title': item.title,
+          'content': item.content,
+          'postTime': txTime.millisecondsSinceEpoch,
+          'userEmail': user?.email ?? 'user@reconx.io',
+          'explicitAmount': amount,
+          'explicitMerchant': merchant,
+          'type': type,
+          'member': member,
+          'category': category,
         }),
       ).timeout(const Duration(seconds: 4));
     } catch (_) {}

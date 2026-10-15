@@ -134,6 +134,24 @@ class ReceiptScannerService {
 
     // Negative words: Lines that should NEVER be considered as the final amount
     final negativeKeywords = [
+      'kembali ke beranda',
+      'kembali ke menu',
+      'kembali ke utama',
+      'simpan sebagai favorit',
+      'no. ref',
+      'no ref',
+      'ref blu',
+      'referensi',
+      'nomor referensi',
+      'no. rekening',
+      'nomor rekening',
+      'rekening tujuan',
+      'sumber dana',
+      'antar blu',
+      'bi-fast',
+      'wib',
+      'wita',
+      'wit',
       'kembali',
       'kembalian',
       'change',
@@ -146,8 +164,15 @@ class ReceiptScannerService {
       'kembalian tunai',
     ];
 
-    // Strongest total & explicit cash price keywords (Priority 1)
+    // Strongest total, e-banking nominal & explicit cash price keywords (Priority 1)
     final p1Keywords = [
+      'nominal',
+      'nominal transfer',
+      'jumlah transfer',
+      'nilai transfer',
+      'total transfer',
+      'nominal transaksi',
+      'total pembayaran',
       'harga tunai',
       'bayar tunai',
       'uang tunai',
@@ -233,7 +258,7 @@ class ReceiptScannerService {
         int score = 25; // baseline
 
         if (p1Keywords.any((k) => lower.contains(k))) {
-          score += 150;
+          score += lower.contains('nominal') ? 190 : 150;
         } else if (p2Keywords.any((k) => lower.contains(k))) {
           score += 105;
         } else if (p3Keywords.any((k) => lower.contains(k))) {
@@ -241,11 +266,11 @@ class ReceiptScannerService {
         }
 
         if (lower.contains('rp') || lower.contains('idr')) {
-          score += 30;
+          score += 35;
         }
 
-        // Relative vertical position bonus (totals are in bottom 60% of receipt)
-        if (i >= lines.length * 0.4) {
+        // Relative vertical position bonus (totals are in bottom 60% of physical receipt, but nominal can be anywhere)
+        if (i >= lines.length * 0.35 || lower.contains('nominal')) {
           score += 25;
         }
 
@@ -262,7 +287,7 @@ class ReceiptScannerService {
         ));
       }
 
-      // 1.2 Check split lines: Line i has keyword but no number, number is on line i+1
+      // 1.2 Check split lines: Line i has keyword (e.g. "Nominal" or "Total") but no number, number is on line i+1
       final hasTotalKeyword = p1Keywords.any((k) => lower.contains(k)) ||
                               p2Keywords.any((k) => lower.contains(k));
 
@@ -274,12 +299,13 @@ class ReceiptScannerService {
           final nextAmounts = _extractNumbersFromText(nextLine);
           for (final amt in nextAmounts) {
             if (!_isValidAmount(amt, nextLine)) continue;
-            final score = 145; // High score for direct following line
+            // E-Banking screenshot "Nominal" on line i followed by "Rp 38.490,00" gets top score 220!
+            final score = lower.contains('nominal') ? 220 : 165;
             candidates.add(_AmountCandidate(
               amount: amt,
               score: score,
               sourceLine: '$line -> $nextLine',
-              reason: 'Next line after keyword',
+              reason: 'Direct next line after $line',
             ));
           }
         }
@@ -296,7 +322,9 @@ class ReceiptScannerService {
 
     for (final line in lines) {
       final l = line.toLowerCase();
-      if (l.contains('kembali') || l.contains('kembalian') || l.contains('change')) {
+      // Exclude navigation buttons like "Kembali ke Beranda"
+      final isNavButton = l.contains('beranda') || l.contains('menu') || l.contains('utama') || l.contains('halaman');
+      if (!isNavButton && (l.contains('kembali') || l.contains('kembalian') || l.contains('change'))) {
         final nums = _extractNumbersFromText(line);
         if (nums.isNotEmpty) {
           changeAmount = nums.last;
@@ -331,7 +359,6 @@ class ReceiptScannerService {
           score: 130,
           sourceLine: tenderLine ?? 'TUNAI',
           reason: 'Tunai tanpa kembalian (Exact Cash Payment)',
-        ));
       }
     }
 
@@ -513,8 +540,25 @@ class ReceiptScannerService {
 
   /// Rejects barcodes, phone numbers, invoice IDs, and dates
   bool _isValidAmount(double amt, String line) {
-    // Basic bounds: Rp 500 up to Rp 100.000.000 (typical retail receipts)
+    // Basic bounds: Rp 500 up to Rp 100.000.000 (typical retail receipts & transfers)
     if (amt < 500 || amt > 100000000) return false;
+
+    final lower = line.toLowerCase();
+    // Rejects lines containing reference numbers, account numbers, or timestamps
+    if (lower.contains('no. ref') ||
+        lower.contains('no ref') ||
+        lower.contains('ref blu') ||
+        lower.contains('referensi') ||
+        lower.contains('rekening') ||
+        lower.contains('norek') ||
+        lower.contains('wib') ||
+        lower.contains('wita') ||
+        lower.contains('wit') ||
+        lower.contains('sumber dana') ||
+        lower.contains('antar blu') ||
+        lower.contains('bi-fast')) {
+      return false;
+    }
 
     final str = amt.toInt().toString();
 
@@ -525,7 +569,7 @@ class ReceiptScannerService {
     if (str.startsWith('8') && str.length >= 9) return false;
 
     // Date or year detection (e.g. 2024, 2025, 2026)
-    if ((amt >= 2020 && amt <= 2030) && (line.contains('/') || line.contains('-') || line.contains(':'))) {
+    if ((amt >= 2020 && amt <= 2030) && (line.contains('/') || line.contains('-') || line.contains(':') || line.contains('|'))) {
       return false;
     }
 
@@ -533,6 +577,50 @@ class ReceiptScannerService {
   }
 
   String _extractMerchant(List<String> lines, String lowerAll) {
+    // 0. E-Banking Transfer Screenshot Detection (blu BCA, BCA Mobile, Livin, BRImo, etc.)
+    final isBanking = lowerAll.contains('transaksi berhasil') ||
+        lowerAll.contains('transfer berhasil') ||
+        lowerAll.contains('bukti transfer') ||
+        lowerAll.contains('ref blu') ||
+        lowerAll.contains('bi-fast') ||
+        lowerAll.contains('antar blu');
+
+    if (isBanking) {
+      // Find the recipient name line
+      for (int i = 0; i < lines.length; i++) {
+        final l = lines[i].toLowerCase();
+        if (l.contains('digital -') ||
+            l.contains('bca -') ||
+            l.contains('mandiri -') ||
+            l.contains('bri -') ||
+            l.contains('bni -') ||
+            l.contains('tipe transaksi')) {
+          if (i > 0) {
+            final prev = lines[i - 1].trim();
+            final prevL = prev.toLowerCase();
+            if (!prevL.contains('nominal') &&
+                !prevL.contains('rp') &&
+                !prevL.contains('transaksi') &&
+                !prevL.contains('wib') &&
+                !prevL.contains('berhasil') &&
+                prev.length >= 3) {
+              return prev;
+            }
+          }
+        }
+      }
+
+      // Check for known digital service providers or merchants in banking transfer
+      for (final line in lines) {
+        final l = line.toLowerCase();
+        if (l.contains('caturnusa')) return 'CATURNUSA SEJAHTERA FINA';
+        if (l.contains('traveloka')) return 'Traveloka PayLater';
+        if (l.contains('tokopedia')) return 'Tokopedia';
+        if (l.contains('shopee')) return 'Shopee';
+        if (l.contains('pln')) return 'PLN Pascabayar/Token';
+      }
+    }
+
     // 1. Check known brands in full text
     if (lowerAll.contains('indomaret')) return 'Indomaret';
     if (lowerAll.contains('alfamidi')) return 'Alfamidi';
@@ -570,6 +658,17 @@ class ReceiptScannerService {
           !RegExp(r'^[0-9\s/:\-]+$').hasMatch(cand) &&
           !l.contains('selamat') &&
           !l.contains('terima kasih') &&
+          !l.contains('transaksi') &&
+          !l.contains('berhasil') &&
+          !l.contains('transfer') &&
+          !l.contains('nominal') &&
+          !l.contains('favorit') &&
+          !l.contains('beranda') &&
+          !l.contains('detail') &&
+          !l.contains('menu') &&
+          !l.contains('wib') &&
+          !l.contains('wita') &&
+          !l.contains('wit') &&
           !l.contains('jl.') &&
           !l.contains('jalan') &&
           !l.contains('telp') &&
@@ -581,19 +680,28 @@ class ReceiptScannerService {
       }
     }
 
-    return 'Merchant / Toko';
+    return isBanking ? 'Penerima Transfer' : 'Merchant / Toko';
   }
 
   String _detectPaymentMethod(String lowerAll) {
-    if (lowerAll.contains('kembali') ||
-        lowerAll.contains('kembalian') ||
-        lowerAll.contains('harga tunai') ||
-        lowerAll.contains('bayar tunai') ||
-        lowerAll.contains('uang tunai') ||
-        lowerAll.contains('tunai') ||
-        lowerAll.contains('cash')) {
-      return 'Tunai (Cash)';
+    final isBanking = lowerAll.contains('transaksi berhasil') ||
+        lowerAll.contains('transfer berhasil') ||
+        lowerAll.contains('bukti transfer') ||
+        lowerAll.contains('antar blu') ||
+        lowerAll.contains('bi-fast') ||
+        lowerAll.contains('ref blu');
+
+    if (lowerAll.contains('blu') || lowerAll.contains('antar blu')) {
+      if (lowerAll.contains('bi-fast')) return 'BI-FAST (blu BCA)';
+      return 'blu by BCA Digital';
     }
+
+    if (lowerAll.contains('bi-fast')) return 'BI-FAST Transfer';
+    if (lowerAll.contains('bca')) return 'BCA Mobile';
+    if (lowerAll.contains('mandiri') || lowerAll.contains('livin')) return "Livin' by Mandiri";
+    if (lowerAll.contains('bri') || lowerAll.contains('brimo')) return 'BRImo (BRI)';
+    if (lowerAll.contains('bni')) return 'BNI Mobile';
+    if (lowerAll.contains('seabank')) return 'SeaBank Transfer';
 
     if (lowerAll.contains('qris')) {
       if (lowerAll.contains('seabank')) return 'QRIS SeaBank';
@@ -603,21 +711,37 @@ class ReceiptScannerService {
       return 'QRIS BCA';
     }
 
-    if (lowerAll.contains('gopay') || lowerAll.contains('gojek')) return 'GoPay QRIS';
-    if (lowerAll.contains('shopeepay') || lowerAll.contains('shopee')) return 'ShopeePay QRIS';
+    if (lowerAll.contains('gopay') || lowerAll.contains('gojek')) return 'GoPay';
+    if (lowerAll.contains('shopeepay') || lowerAll.contains('shopee')) return 'ShopeePay';
     if (lowerAll.contains('ovo')) return 'OVO';
     if (lowerAll.contains('dana')) return 'DANA';
-    if (lowerAll.contains('mandiri')) return 'Debit Mandiri';
-    if (lowerAll.contains('bri')) return 'Debit BRI';
-    if (lowerAll.contains('seabank')) return 'QRIS SeaBank';
-    if (lowerAll.contains('blu')) return 'QRIS blu BCA';
     if (lowerAll.contains('debit') || lowerAll.contains('edc')) return 'Debit BCA';
 
-    return 'Tunai (Cash)';
+    if (!isBanking) {
+      if (lowerAll.contains('uang tunai') ||
+          lowerAll.contains('harga tunai') ||
+          lowerAll.contains('bayar tunai') ||
+          lowerAll.contains('kembalian') ||
+          RegExp(r'\bkembali\s*:\s*[0-9]').hasMatch(lowerAll) ||
+          (lowerAll.contains('tunai') && !lowerAll.contains('beranda'))) {
+        return 'Tunai (Cash)';
+      }
+    }
+
+    return isBanking ? 'Transfer Bank' : 'Tunai (Cash)';
   }
 
   String _detectCategory(String merchant, String lowerAll) {
     final m = merchant.toLowerCase();
+    if (m.contains('caturnusa') || lowerAll.contains('caturnusa')) {
+      return 'Tagihan & PayLater (Caturnusa)';
+    }
+    if (lowerAll.contains('uang keluar')) {
+      return 'Transfer Uang Keluar';
+    }
+    if (lowerAll.contains('uang masuk')) {
+      return 'Penerimaan Dana';
+    }
     if (m.contains('indomaret') ||
         m.contains('alfamart') ||
         m.contains('alfamidi') ||

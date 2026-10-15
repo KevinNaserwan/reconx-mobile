@@ -35,6 +35,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
   }
 
   String _selectedFilter = 'Semua';
+  String _selectedMember = 'Semua Anggota';
   String _searchQuery = '';
   final _searchController = TextEditingController();
 
@@ -105,67 +106,331 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
     );
   }
 
-  void _showResetConfirmationDialog() {
-    showDialog(
+  void _showManualEntryModal() {
+    final isDark = AppTheme.isDark(context);
+    String txType = 'EXPENSE';
+    final amountController = TextEditingController();
+    final merchantController = TextEditingController();
+    final notesController = TextEditingController();
+    String selectedApp = 'Tunai (Cash)';
+    String selectedCategory = 'Makanan & Minuman';
+    String selectedMember = 'Kevin (Saya)';
+
+    final apps = [
+      'Tunai (Cash)',
+      'blu by BCA Digital',
+      'BCA Mobile',
+      "Livin' by Mandiri",
+      'BRImo',
+      'BNI Mobile',
+      'SeaBank',
+      'GoPay',
+      'OVO',
+      'DANA',
+      'ShopeePay',
+      'Lainnya',
+    ];
+
+    final categories = [
+      'Makanan & Minuman',
+      'Belanja Harian',
+      'Gaji & Pendapatan',
+      'Transportasi & Bensin',
+      'Tagihan & Utilitas',
+      'Kesehatan & Farmasi',
+      'Pendidikan',
+      'Investasi & Tabungan',
+      'Hiburan & Rekreasi',
+      'Lainnya',
+    ];
+
+    final members = ApiSyncService().familyMembers;
+
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppTheme.getCard(context),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            const Icon(Icons.delete_sweep_rounded, color: AppTheme.dangerRose, size: 24),
-            const SizedBox(width: 10),
-            Text(
-              'Reset Data Mutasi',
-              style: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
-                color: AppTheme.getTextPrimary(context),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+              top: 20,
+              left: 20,
+              right: 20,
+            ),
+            decoration: BoxDecoration(
+              color: AppTheme.getCard(context),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: AppTheme.getBorder(context)),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Catat Mutasi Finansial Manual',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.getTextPrimary(context),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        icon: Icon(Icons.close_rounded, color: AppTheme.getTextSecondary(context)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Type Segmented Toggle
+                  Row(
+                    children: [
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setModalState(() {
+                            txType = 'EXPENSE';
+                            if (selectedCategory == 'Gaji & Pendapatan') {
+                              selectedCategory = 'Makanan & Minuman';
+                            }
+                          }),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: txType == 'EXPENSE'
+                                  ? const Color(0xFFF43F5E).withOpacity(0.15)
+                                  : (isDark ? AppTheme.darkBg : const Color(0xFFF1F5F9)),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: txType == 'EXPENSE'
+                                    ? const Color(0xFFF43F5E)
+                                    : Colors.transparent,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '↑ Uang Keluar (Expense)',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: txType == 'EXPENSE'
+                                      ? const Color(0xFFF43F5E)
+                                      : AppTheme.getTextSecondary(context),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: GestureDetector(
+                          onTap: () => setModalState(() {
+                            txType = 'INCOME';
+                            selectedCategory = 'Gaji & Pendapatan';
+                          }),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            decoration: BoxDecoration(
+                              color: txType == 'INCOME'
+                                  ? AppTheme.primaryEmerald.withOpacity(0.15)
+                                  : (isDark ? AppTheme.darkBg : const Color(0xFFF1F5F9)),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: txType == 'INCOME'
+                                    ? AppTheme.primaryEmerald
+                                    : Colors.transparent,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '↓ Uang Masuk (Income)',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: txType == 'INCOME'
+                                      ? AppTheme.primaryEmerald
+                                      : AppTheme.getTextSecondary(context),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  // Nominal
+                  Text('Nominal Transaksi (Rp)', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.getTextSecondary(context))),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: amountController,
+                    keyboardType: TextInputType.number,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800, color: AppTheme.getTextPrimary(context)),
+                    decoration: InputDecoration(
+                      prefixText: 'Rp ',
+                      hintText: '50.000',
+                      filled: true,
+                      fillColor: isDark ? AppTheme.darkBg : const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.getBorder(context))),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Merchant / Keterangan Singkat
+                  Text('Penerima / Merchant / Keperluan', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.getTextSecondary(context))),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: merchantController,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppTheme.getTextPrimary(context)),
+                    decoration: InputDecoration(
+                      hintText: txType == 'INCOME' ? 'Contoh: Gaji Bulanan, Transfer Masuk, Bonus' : 'Contoh: Warung Makan, Indomaret, Bensin SPBU',
+                      filled: true,
+                      fillColor: isDark ? AppTheme.darkBg : const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.getBorder(context))),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Anggota Keluarga & Dompet
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Anggota Keluarga', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.getTextSecondary(context))),
+                            const SizedBox(height: 6),
+                            DropdownButtonFormField<String>(
+                              value: selectedMember,
+                              items: members.map((m) => DropdownMenuItem(value: m, child: Text(m, style: const TextStyle(fontSize: 12)))).toList(),
+                              onChanged: (v) => setModalState(() => selectedMember = v ?? 'Kevin (Saya)'),
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: isDark ? AppTheme.darkBg : const Color(0xFFF8FAFC),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.getBorder(context))),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Metode / Dompet', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.getTextSecondary(context))),
+                            const SizedBox(height: 6),
+                            DropdownButtonFormField<String>(
+                              value: selectedApp,
+                              items: apps.map((a) => DropdownMenuItem(value: a, child: Text(a, style: const TextStyle(fontSize: 12)))).toList(),
+                              onChanged: (v) => setModalState(() => selectedApp = v ?? 'Tunai (Cash)'),
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: isDark ? AppTheme.darkBg : const Color(0xFFF8FAFC),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.getBorder(context))),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  // Kategori
+                  Text('Kategori Pengeluaran / Pemasukan', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.getTextSecondary(context))),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: selectedCategory,
+                    items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c, style: const TextStyle(fontSize: 12)))).toList(),
+                    onChanged: (v) => setModalState(() => selectedCategory = v ?? 'Makanan & Minuman'),
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: isDark ? AppTheme.darkBg : const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.getBorder(context))),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  // Catatan Opsional
+                  Text('Catatan Tambahan (Opsional)', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppTheme.getTextSecondary(context))),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: notesController,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, color: AppTheme.getTextPrimary(context)),
+                    decoration: InputDecoration(
+                      hintText: 'Misal: Beli galon & belanja bulanan',
+                      filled: true,
+                      fillColor: isDark ? AppTheme.darkBg : const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.getBorder(context))),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Submit Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final rawAmt = amountController.text.replaceAll(RegExp(r'[^0-9]'), '');
+                        final amt = double.tryParse(rawAmt) ?? 0.0;
+                        if (amt <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Nominal harus lebih dari Rp 0.')));
+                          return;
+                        }
+                        final merchant = merchantController.text.trim().isNotEmpty
+                            ? merchantController.text.trim()
+                            : (txType == 'INCOME' ? 'Pemasukan Kas' : 'Pengeluaran Kas');
+
+                        HapticFeedback.mediumImpact();
+                        Navigator.pop(ctx);
+
+                        final cleanMember = selectedMember.replaceAll(' (Saya)', '');
+                        await ApiSyncService().addManualTransaction(
+                          amount: amt,
+                          merchant: merchant,
+                          type: txType,
+                          appName: selectedApp,
+                          category: selectedCategory,
+                          member: cleanMember,
+                          notes: notesController.text.trim(),
+                        );
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: AppTheme.primaryEmerald,
+                              content: Text(
+                                'Mutasi manual berhasil dicatat: ${txType == "INCOME" ? "+ " : "- "}Rp ${amt.toInt()}',
+                                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: txType == 'INCOME' ? AppTheme.primaryEmerald : const Color(0xFFF43F5E),
+                        foregroundColor: txType == 'INCOME' ? Colors.black : Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                      child: Text(
+                        'Simpan Mutasi (${txType == "INCOME" ? "Masuk" : "Keluar"})',
+                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 14),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-        content: Text(
-          'Seluruh riwayat transaksi mutasi lokal akan dikosongkan (0 transaksi). Anda dapat memulai pencatatan dari awal lagi.',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 13,
-            color: AppTheme.getTextSecondary(context),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              'Batal',
-              style: TextStyle(color: AppTheme.getTextSecondary(context)),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              HapticFeedback.mediumImpact();
-              await ApiSyncService().resetAllData();
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    backgroundColor: AppTheme.primaryEmerald,
-                    content: Text(
-                      'Riwayat mutasi berhasil dikosongkan (0 transaksi).',
-                      style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black),
-                    ),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.dangerRose,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            child: const Text('Reset Sekarang'),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
@@ -358,9 +623,9 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
             onPressed: () => _handleExportCSV(ApiSyncService().history),
           ),
           IconButton(
-            icon: Icon(Icons.delete_sweep_outlined, color: AppTheme.getTextSecondary(context)),
-            tooltip: 'Reset Data Mutasi',
-            onPressed: () => _showResetConfirmationDialog(),
+            icon: const Icon(Icons.add_circle_outline_rounded, color: AppTheme.primaryEmerald),
+            tooltip: 'Catat Mutasi Manual',
+            onPressed: () => _showManualEntryModal(),
           ),
           IconButton(
             icon: const Icon(Icons.qr_code_scanner_rounded, color: AppTheme.primaryEmerald),
@@ -369,12 +634,34 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: AppTheme.primaryEmerald,
+        foregroundColor: Colors.black,
+        elevation: 3,
+        icon: const Icon(Icons.edit_note_rounded, size: 20),
+        label: Text(
+          'Catat Mutasi',
+          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w800, fontSize: 13),
+        ),
+        onPressed: () => _showManualEntryModal(),
+      ),
       body: ListenableBuilder(
         listenable: Listenable.merge([ApiSyncService(), LanguageService()]),
         builder: (context, _) {
-          final history = ApiSyncService().history;
+          final sync = ApiSyncService();
+          final history = sync.history;
+          final familyMembers = sync.familyMembers;
 
           final filtered = history.where((tx) {
+            // Member Filter
+            if (_selectedMember != 'Semua Anggota') {
+              final cleanFilter = _selectedMember.replaceAll(' (Saya)', '').toLowerCase();
+              if (tx.member.toLowerCase() != cleanFilter) {
+                return false;
+              }
+            }
+
+            // Category / Channel Filter
             if (_selectedFilter == 'Uang Masuk') {
               if (!tx.isIncome) return false;
             } else if (_selectedFilter == 'Uang Keluar') {
@@ -411,26 +698,111 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               final query = _searchQuery.toLowerCase();
               return tx.merchant.toLowerCase().contains(query) ||
                   tx.appName.toLowerCase().contains(query) ||
-                  tx.content.toLowerCase().contains(query);
+                  tx.content.toLowerCase().contains(query) ||
+                  tx.member.toLowerCase().contains(query);
             }
 
             return true;
           }).toList();
 
+          final totalIncome = filtered.where((t) => t.isIncome).fold(0.0, (s, t) => s + t.amount);
+          final totalExpense = filtered.where((t) => !t.isIncome).fold(0.0, (s, t) => s + t.amount);
+          final netBalance = totalIncome - totalExpense;
+
           return Column(
             children: [
+              // Total Saldo Kas (Net Balance) Banner
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: isDark
+                        ? [const Color(0xFF0F172A), const Color(0xFF1E293B)]
+                        : [const Color(0xFFF1F5F9), const Color(0xFFE2E8F0)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.getBorder(context)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.account_balance_wallet_rounded,
+                                size: 14,
+                                color: netBalance >= 0 ? AppTheme.primaryEmerald : const Color(0xFFF43F5E),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                _selectedMember == 'Semua Anggota'
+                                    ? 'Total Saldo Kas Bersih'
+                                    : 'Saldo Kas ($_selectedMember)',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.getTextSecondary(context),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            (netBalance >= 0 ? '+ ' : '- ') + currencyFormat.format(netBalance.abs()),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: netBalance >= 0 ? AppTheme.primaryEmerald : const Color(0xFFF43F5E),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '↓ Masuk: +${currencyFormat.format(totalIncome)}',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.primaryEmerald,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '↑ Keluar: -${currencyFormat.format(totalExpense)}',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFFF43F5E),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
               // Search & Filter Box
               Container(
                 color: AppTheme.getCard(context),
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TextField(
                       controller: _searchController,
                       onChanged: (val) => setState(() => _searchQuery = val.trim()),
                       style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 13),
                       decoration: InputDecoration(
-                        hintText: 'Cari nama merchant atau transaksi...',
+                        hintText: 'Cari nama merchant, anggota, atau transaksi...',
                         hintStyle: TextStyle(color: AppTheme.getTextSecondary(context).withOpacity(0.6), fontSize: 13),
                         prefixIcon: Icon(Icons.search_rounded, size: 20, color: AppTheme.getTextSecondary(context)),
                         suffixIcon: _searchQuery.isNotEmpty
@@ -459,15 +831,64 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    // Filter Chips
+                    const SizedBox(height: 10),
+
+                    // Family Member Filter Chips
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6.0),
+                            child: ChoiceChip(
+                              avatar: const Icon(Icons.people_alt_rounded, size: 14),
+                              label: const Text('Semua Keluarga'),
+                              selected: _selectedMember == 'Semua Anggota',
+                              selectedColor: AppTheme.primaryEmerald.withOpacity(0.2),
+                              backgroundColor: isDark ? AppTheme.darkBg : const Color(0xFFF1F5F9),
+                              labelStyle: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                fontWeight: _selectedMember == 'Semua Anggota' ? FontWeight.w800 : FontWeight.w600,
+                                color: _selectedMember == 'Semua Anggota' ? AppTheme.primaryEmerald : AppTheme.getTextSecondary(context),
+                              ),
+                              side: BorderSide(color: _selectedMember == 'Semua Anggota' ? AppTheme.primaryEmerald : AppTheme.getBorder(context)),
+                              onSelected: (_) => setState(() => _selectedMember = 'Semua Anggota'),
+                            ),
+                          ),
+                          ...familyMembers.map((m) {
+                            final isSel = _selectedMember == m;
+                            return Padding(
+                              padding: const EdgeInsets.only(right: 6.0),
+                              child: ChoiceChip(
+                                avatar: const Icon(Icons.person_outline_rounded, size: 14),
+                                label: Text(m),
+                                selected: isSel,
+                                selectedColor: AppTheme.primaryEmerald.withOpacity(0.2),
+                                backgroundColor: isDark ? AppTheme.darkBg : const Color(0xFFF1F5F9),
+                                labelStyle: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  fontWeight: isSel ? FontWeight.w800 : FontWeight.w600,
+                                  color: isSel ? AppTheme.primaryEmerald : AppTheme.getTextSecondary(context),
+                                ),
+                                side: BorderSide(color: isSel ? AppTheme.primaryEmerald : AppTheme.getBorder(context)),
+                                onSelected: (_) => setState(() => _selectedMember = m),
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // Type / Channel Filter Chips
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: _filters.map((f) {
                           final isSelected = _selectedFilter == f;
                           return Padding(
-                            padding: const EdgeInsets.only(right: 8.0),
+                            padding: const EdgeInsets.only(right: 6.0),
                             child: ChoiceChip(
                               label: Text(f),
                               selected: isSelected,

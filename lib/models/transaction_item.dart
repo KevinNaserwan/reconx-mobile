@@ -10,6 +10,8 @@ class SyncedTransaction {
   final DateTime timestamp;
   final String status;
   final String type; // 'EXPENSE' or 'INCOME'
+  final String member;
+  final String category;
 
   SyncedTransaction({
     required this.id,
@@ -23,6 +25,8 @@ class SyncedTransaction {
     required this.timestamp,
     required this.status,
     this.type = 'EXPENSE',
+    this.member = 'Kevin',
+    this.category = 'Konsumsi & Belanja',
   });
 
   DateTime get timestampWib => timestamp.toUtc().add(const Duration(hours: 7));
@@ -40,6 +44,8 @@ class SyncedTransaction {
         'timestamp': timestamp.toIso8601String(),
         'status': status,
         'type': type,
+        'member': member,
+        'category': category,
       };
 
   factory SyncedTransaction.fromJson(Map<String, dynamic> json) {
@@ -76,6 +82,8 @@ class SyncedTransaction {
               : DateTime.now()),
       status: json['status'] ?? 'SYNCED_TO_LEDGER',
       type: resolvedType,
+      member: json['member'] ?? 'Kevin',
+      category: json['category'] ?? 'Konsumsi & Belanja',
     );
   }
 }

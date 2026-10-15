@@ -323,6 +323,158 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 
                 const SizedBox(height: 16),
 
+                // Total Saldo Kas Bersih (Net Cashflow Balance) Card
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: isDark
+                          ? [
+                              const Color(0xFF0F172A),
+                              const Color(0xFF1E293B),
+                            ]
+                          : [
+                              Colors.white,
+                              const Color(0xFFF8FAFC),
+                            ],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: syncService.totalNetBalanceAllTime >= 0
+                          ? AppTheme.primaryEmerald.withOpacity(0.4)
+                          : const Color(0xFFF43F5E).withOpacity(0.4),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(isDark ? 0.25 : 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(
+                                  color: (syncService.totalNetBalanceAllTime >= 0
+                                          ? AppTheme.primaryEmerald
+                                          : const Color(0xFFF43F5E))
+                                      .withOpacity(0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  syncService.totalNetBalanceAllTime >= 0
+                                      ? Icons.account_balance_wallet_rounded
+                                      : Icons.account_balance_wallet_outlined,
+                                  color: syncService.totalNetBalanceAllTime >= 0
+                                      ? AppTheme.primaryEmerald
+                                      : const Color(0xFFF43F5E),
+                                  size: 18,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'TOTAL SALDO KAS BERSIH',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.6,
+                                  color: AppTheme.getTextSecondary(context),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryEmerald.withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'Kumulatif',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.primaryEmerald,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        _isBalanceMasked
+                            ? 'Rp ••••••••••'
+                            : currencyFormat.format(syncService.totalNetBalanceAllTime),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -0.5,
+                          color: syncService.totalNetBalanceAllTime >= 0
+                              ? AppTheme.getTextPrimary(context)
+                              : const Color(0xFFF43F5E),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.isDark(context)
+                              ? Colors.black.withOpacity(0.2)
+                              : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.arrow_downward_rounded, size: 13, color: AppTheme.primaryEmerald),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Masuk: ${_isBalanceMasked ? "••••" : currencyFormat.format(syncService.totalIncomeAllTime)}',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.primaryEmerald,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                const Icon(Icons.arrow_upward_rounded, size: 13, color: Color(0xFFF43F5E)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Keluar: ${_isBalanceMasked ? "••••" : currencyFormat.format(syncService.totalExpenseAllTime)}',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFFF43F5E),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 14),
+
                 // Metrics Grid: Cashflow Split (Uang Keluar & Uang Masuk)
                 Row(
                   children: [
@@ -478,6 +630,108 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                       ),
                     ],
                   ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Ringkasan Keuangan Keluarga & Anggota
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'KEUANGAN KELUARGA & ANGGOTA',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.getTextSecondary(context),
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    Text(
+                      '${syncService.familyMembers.length} Anggota',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.getTextSecondary(context),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: syncService.familyMembers.map((member) {
+                    final metrics = syncService.getMemberMetrics(member);
+                    final net = metrics['net'] ?? 0.0;
+                    final inc = metrics['income'] ?? 0.0;
+                    final exp = metrics['expense'] ?? 0.0;
+                    return Expanded(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 4),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.getCard(context),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppTheme.getBorder(context)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: member == 'Kevin'
+                                        ? AppTheme.primaryEmerald
+                                        : (member == 'Istri' ? const Color(0xFFEC4899) : const Color(0xFF3B82F6)),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Expanded(
+                                  child: Text(
+                                    member,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppTheme.getTextPrimary(context),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Saldo:',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 10, color: AppTheme.getTextSecondary(context)),
+                            ),
+                            Text(
+                              _isBalanceMasked ? '••••' : currencyFormat.format(net),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w800,
+                                color: net >= 0 ? AppTheme.primaryEmerald : const Color(0xFFF43F5E),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '+ ${_isBalanceMasked ? "•••" : currencyFormat.format(inc)}',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 9.5, color: AppTheme.primaryEmerald, fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Text(
+                              '- ${_isBalanceMasked ? "•••" : currencyFormat.format(exp)}',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 9.5, color: const Color(0xFFF43F5E), fontWeight: FontWeight.w600),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
 
                 const SizedBox(height: 24),

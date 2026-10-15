@@ -114,6 +114,7 @@ jobs:
           fi
           echo "Found APK: $APK_FILE"
           mkdir -p dist
+          cp "$APK_FILE" dist/Reconx-v1.3.14.apk
           cp "$APK_FILE" dist/Reconx-v1.3.13.apk
           cp "$APK_FILE" dist/Reconx-v1.3.12.apk
           cp "$APK_FILE" dist/Reconx-v1.3.11.apk
@@ -131,40 +132,45 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Reconx-v1.3.13-APK
-          path: dist/Reconx-v1.3.13.apk
+          name: Reconx-v1.3.14-APK
+          path: dist/Reconx-v1.3.14.apk
           retention-days: 30
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.3.13
-          name: "Reconx Android v1.3.13 (Support Format Nota Harga Tunai, Rekonsiliasi Tunai-Kembali & Multi-Channel Web Filter)"
+          tag_name: v1.3.14
+          name: "Reconx Android v1.3.14 (M-Banking OCR Tuning, Manual Entry, Total Saldo Kas & Family Breakdown)"
           draft: false
           prerelease: false
           overwrite: true
           body: |
-            ### Reconx Android v1.3.13 Official Release
+            ### Reconx Android v1.3.14 Official Release
 
-            Pembaruan komprehensif dataset pengenalan nota fisik di Indonesia (dukungan format nota tanpa kata TOTAL seperti HARGA TUNAI, RUPIAH SPBU, TARIF parkir, serta rekonsiliasi aritmatika Tunai minus Kembali):
+            Pembaruan komprehensif sistem pencatatan keuangan harian pribadi & keluarga:
 
-            - 🧾 **Dukungan Penuh Beragam Format Nota di Indonesia:**
-              - **Format Tanpa Kata TOTAL (Harga Tunai):** Mengenali kata kunci `HARGA TUNAI`, `BAYAR TUNAI`, `UANG TUNAI`, `PEMBAYARAN TUNAI`, `TOTAL TUNAI` yang sering dipakai warung makan, depot, dan nota kontan toko kelontong.
-              - **Aritmatika Cerdas Tunai - Kembali:** Jika nota hanya mencantumkan nominal uang diserahkan (`TUNAI: 50.000`) dan uang kembalian (`KEMBALI: 15.000`), sistem secara otomatis menghitung nilai riil belanja = Rp 35.000.
-              - **Struk SPBU & Bensin (Pertamina / Shell):** Mengenali kata kunci khusus SPBU seperti `RUPIAH`, `JML RUPIAH`, `TOTAL (RP)` untuk transaksi pengisian bahan bakar.
-              - **Struk Parkir, Transportasi & Apotek:** Mendukung keyword `TARIF`, `BIAYA PARKIR`, `BIAYA TIKET`, `TOTAL RESEP`, dan `HARGA OBAT`.
-              - **Multi-Item Line Summation Fallback:** Jika bagian bawah nota terpotong atau buram, sistem secara cerdas menjumlahkan baris-baris harga barang yang terdeteksi.
-            - ⚡ **Penyempurnaan Review Hasil Scan & Tombol Penyesuaian Cepat:**
-              - Indikator akurasi OCR (*Confidence Tag*).
-              - Chip penyesuaian cepat nominal (+Rp 1rb, +Rp 5rb, +Rp 10rb, +Rp 50rb) untuk koreksi instan.
-              - Otomatis memilih metode pembayaran `Tunai (Cash)` bila terdeteksi transaksi tunai.
-            - 🌐 **Web Dashboard Multi-Channel Quick Filters:**
-              - Filter cepat di Web Internal Ledger: `Semua Mutasi`, `Uang Keluar`, `Uang Masuk`, `Scan Nota Fisik`, `QRIS & E-Wallet`, dan `Transfer Bank`.
+            - 🏦 **Tuning Super Presisi OCR Bukti Transfer M-Banking:**
+              - Mengatasi bukti transfer M-Banking Indonesia (blu BCA Digital, BCA Mobile, Livin' Mandiri, BRImo, dll).
+              - Mendeteksi header `Nominal` multi-baris (`Rp 38.490,00`, `Rp 940.571,00`).
+              - Memblokir tombol navigasi aplikasi (`Kembali ke Beranda`, dll) agar tidak salah terdeteksi sebagai uang kembalian tunai.
+              - Ekstraksi cerdas nama penerima transfer sesungguhnya (bukan label status transaksi).
+            - 💰 **Total Saldo Kas Bersih (Net Cashflow Balance):**
+              - Menampilkan ringkasan Total Saldo Kas Kumulatif (Uang Masuk dikurangi Uang Keluar).
+              - Kartu ringkasan kas bersih di Dashboard dan layar Riwayat Mutasi.
+            - 👨‍👩‍👧 **Keuangan Keluarga & Pemisahan Mutasi Per Anggota:**
+              - Pembagian keuangan untuk anggota keluarga: **Kevin**, **Istri**, dan **Anak**.
+              - Filter cepat per anggota di layar Mutasi.
+              - Ringkasan saldo dan arus kas masing-masing anggota di Dashboard.
+            - ✍️ **Pencatatan Mutasi Manual (Uang Masuk / Keluar):**
+              - Modal pencatatan transaksi manual lengkap dengan nominal, kategori, anggota keluarga, dompet/metode pembayaran, dan catatan.
+            - 🔒 **Zero Data Loss (Tanpa Reset Mutasi):**
+              - Menghapus opsi reset data mutasi agar riwayat transaksi aman dan permanen tersimpan.
 
             #### 📥 Download Langsung:
-            Download file **`Reconx-v1.3.13.apk`** di bawah ini dan pasang langsung di HP Android Anda.
+            Download file **`Reconx-v1.3.14.apk`** di bawah ini dan pasang langsung di HP Android Anda.
           files: |
+            dist/Reconx-v1.3.14.apk
             dist/Reconx-v1.3.13.apk
             dist/Reconx-v1.3.12.apk
             dist/Reconx-v1.3.11.apk
