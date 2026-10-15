@@ -6,6 +6,7 @@ import '../services/biometric_service.dart';
 import '../services/language_service.dart';
 import '../services/theme_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/floating_notification_banner.dart';
 import 'login_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -726,6 +727,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
                   ],
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        FloatingNotificationBanner.show(
+                          context,
+                          title: 'QRIS Pembayaran Terdeteksi',
+                          subtitle: 'BCA Mobile • Kopi Kenangan Mall',
+                          amount: 38000,
+                          brand: 'QRIS BCA',
+                        );
+                      },
+                      icon: const Icon(Icons.motion_photos_on_rounded, size: 18),
+                      label: const Text('Uji Animasi Floating Notification'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primaryEmerald,
+                        side: BorderSide(color: AppTheme.primaryEmerald.withOpacity(0.5)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),

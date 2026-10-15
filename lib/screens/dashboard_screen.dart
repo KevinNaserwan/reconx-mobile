@@ -7,6 +7,8 @@ import '../services/language_service.dart';
 import '../services/theme_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/brand_badge.dart';
+import '../widgets/floating_notification_banner.dart';
+import '../widgets/radar_pulse_indicator.dart';
 import 'settings_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -145,17 +147,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                   child: Row(
                     children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: syncService.isServiceActive
-                              ? AppTheme.primaryEmerald
-                              : Colors.amber,
-                          shape: BoxShape.circle,
-                        ),
+                      RadarPulseIndicator(
+                        size: 11,
+                        color: syncService.isServiceActive
+                            ? AppTheme.primaryEmerald
+                            : Colors.amber,
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

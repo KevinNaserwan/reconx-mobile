@@ -7,6 +7,8 @@ import '../services/language_service.dart';
 import '../services/permission_service.dart';
 import '../services/receipt_scanner_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/slide_to_confirm.dart';
+import '../widgets/success_celebration_dialog.dart';
 
 class ReceiptScannerScreen extends StatefulWidget {
   final VoidCallback? onScanComplete;
@@ -145,30 +147,23 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
 
     setState(() {
       _isProcessing = false;
-      _scanResult = null;
     });
 
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: AppTheme.primaryEmerald,
-          behavior: SnackBarBehavior.floating,
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle_rounded, color: Colors.white),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Nota $merchant berhasil masuk ke mutasi rekonsiliasi!',
-                  style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
-          ),
-        ),
+      SuccessCelebrationDialog.show(
+        context: context,
+        amount: amount,
+        merchant: merchant,
+        category: _selectedCategory,
+        paymentMethod: _selectedMethod,
+        onViewTransactions: () {
+          setState(() => _scanResult = null);
+          widget.onScanComplete?.call();
+        },
+        onScanAgain: () {
+          setState(() => _scanResult = null);
+        },
       );
-
-      widget.onScanComplete?.call();
     }
   }
 
@@ -659,28 +654,22 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
 
             const SizedBox(height: 24),
 
-            // Confirm Button
-            ElevatedButton(
-              onPressed: _isProcessing ? null : _handleConfirmSync,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryEmerald,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            // Slide to Confirm (GoPay / Banking Style Drag to Confirm)
+            SlideToConfirm(
+              text: 'Geser untuk Simpan Mutasi >>>',
+              isLoading: _isProcessing,
+              onConfirmed: _handleConfirmSync,
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: Text(
+                'Geser ke kanan untuk memvalidasi & memasukkan ke ledger',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  color: AppTheme.getTextSecondary(context),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-              child: _isProcessing
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : Text(
-                      'Simpan ke Ledger Rekonsiliasi',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
             ),
           ],
         ),

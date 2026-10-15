@@ -114,6 +114,7 @@ jobs:
           fi
           echo "Found APK: $APK_FILE"
           mkdir -p dist
+          cp "$APK_FILE" dist/Reconx-v1.3.2.apk
           cp "$APK_FILE" dist/Reconx-v1.3.1.apk
           cp "$APK_FILE" dist/Reconx-v1.3.0.apk
           cp "$APK_FILE" dist/Reconx-v1.2.0.apk
@@ -123,39 +124,34 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Reconx-v1.3.1-APK
-          path: dist/Reconx-v1.3.1.apk
+          name: Reconx-v1.3.2-APK
+          path: dist/Reconx-v1.3.2.apk
           retention-days: 30
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.3.1
-          name: "Reconx Android v1.3.1 (Enterprise Ready)"
+          tag_name: v1.3.2
+          name: "Reconx Android v1.3.2 (Motion & Interactive Edition)"
           draft: false
           prerelease: false
           overwrite: true
           body: |
-            ### Reconx Android v1.3.1 Enterprise Release
+            ### Reconx Android v1.3.2 Motion & Interactive Release
             
-            Pembaruan besar antarmuka (UI/UX), arsitektur keamanan, dan fitur enterprise aplikasi Android **Reconx**:
+            Peningkatan interaksi mikro (*micro-interactions*), animasi motion ala GoPay & perbankan modern:
             
-            - 🌐 **Multilingual Language Support:** Pilihan 3 bahasa resmi: **Bahasa Indonesia (ID)**, **English (EN)**, dan **Chinese (ZH - 中文)**.
-            - 👁️ **Enterprise Privacy Balance Masking:** Mode privasi sensor nominal saldo (ikon mata 👁️) untuk keamanan di tempat umum.
-            - 🌓 **White & Dark Mode:** Dukungan tema Terang (White) dan Gelap (Dark) yang fleksibel dengan toggle instan.
-            - 🏷️ **Custom Brand Badges:** Icon transaksi bervariasi dengan visual brand resmi (QRIS, GoPay, OVO, DANA, ShopeePay, BCA, Mandiri, BRI, SeaBank, dll.) menggantikan centang generic.
-            - 📊 **CSV Export & Audit Trail:** Kemampuan ekspor seluruh mutasi finansial keluarga ke format CSV langsung disalin ke clipboard untuk Excel / Google Sheets.
-            - 🔔 **Filter Notifikasi Bank & E-Wallet:** Kontrol penuh untuk memilih sumber aplikasi finansial mana saja yang diizinkan untuk dibaca dan disinkronkan.
-            - 📷 **Viewfinder Scanner Ala GoPay:** Antarmuka scanner in-app modern dengan animasi laser scanning, glowing corner brackets, dan kontrol senter/galeri.
-            - 🎟️ **Voucher PIN Undangan Rapi:** Kartu PIN keluarga yang lebih rapi, elegan, dan mudah disalin untuk menghubungkan akun pasangan.
-            - 👤 **Lengkapi Data Profil:** Dialog pengaturan data pribadi (Nama, Email, WhatsApp, Peran Finansial Keluarga).
-            - 🚪 **Tombol Logout Merah & Pembersihan:** Tombol keluar beraksen merah tegas dan pembersihan tombol redundant di beranda.
-            - 🛡️ **Persistent Keystore:** Kunci sertifikat resmi permanen untuk update mulus tanpa bentrok paket.
+            - ⏩ **Slide to Confirm (Geser untuk Simpan):** Konfirmasi nota hasil scan kini menggunakan interaksi geser kiri-ke-kanan (*drag-to-pay style*) dengan getaran haptik dan pegas elastis.
+            - 🎊 **Celebration Modal Dialog:** Animasi sukses pop-up dengan centang hijau berdenyut (*pulsing circle aura*), rincian nominal tebal, badge brand, dan opsi langsung ke mutasi atau scan ulang.
+            - 🏝️ **Dynamic Island / Floating In-App Banner:** Notifikasi melayang mulus dari atas layar saat ada transaksi bank/e-wallet baru yang terekonsiliasi otomatis.
+            - 📡 **Radar Pulse Heartbeat Motion:** Indikator sinkronisasi aktif di beranda kini memiliki animasi gelombang radar hidup menandakan AI agent aktif bekerja memantau transaksi.
+            - 🌐 **Multilingual & Enterprise Security:** 3 bahasa resmi (ID, EN, ZH), sensor saldo 👁️, dan export audit trail CSV.
             
             #### 📥 Download Langsung:
-            Download file **`Reconx-v1.3.1.apk`** di bawah ini dan install langsung di HP Android Anda.
+            Download file **`Reconx-v1.3.2.apk`** di bawah ini dan install langsung di HP Android Anda.
           files: |
+            dist/Reconx-v1.3.2.apk
             dist/Reconx-v1.3.1.apk
             dist/Reconx-v1.3.0.apk
         env:

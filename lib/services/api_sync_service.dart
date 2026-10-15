@@ -52,6 +52,9 @@ class ApiSyncService extends ChangeNotifier {
   };
   Map<String, bool> get appFilters => Map.unmodifiable(_appFilters);
 
+  final _newTransactionController = StreamController<SyncedTransaction>.broadcast();
+  Stream<SyncedTransaction> get onNewTransactionStream => _newTransactionController.stream;
+
   StreamSubscription? _eventSubscription;
 
   Future<void> init() async {
@@ -260,6 +263,7 @@ class ApiSyncService extends ChangeNotifier {
     _syncedCountToday += 1;
     _syncedVolumeToday += amount;
     await _saveHistoryToPrefs();
+    _newTransactionController.add(item);
     notifyListeners();
 
     // Async sync to backend
@@ -323,6 +327,7 @@ class ApiSyncService extends ChangeNotifier {
         _syncedCountToday += 1;
         _syncedVolumeToday += item.amount;
         await _saveHistoryToPrefs();
+        _newTransactionController.add(item);
         notifyListeners();
         return item;
       }
@@ -349,6 +354,7 @@ class ApiSyncService extends ChangeNotifier {
     _syncedCountToday += 1;
     _syncedVolumeToday += fallbackAmount;
     await _saveHistoryToPrefs();
+    _newTransactionController.add(fallbackItem);
     notifyListeners();
     return fallbackItem;
   }

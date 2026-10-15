@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/api_sync_service.dart';
 import '../services/language_service.dart';
 import '../services/permission_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/floating_notification_banner.dart';
 import 'dashboard_screen.dart';
 import 'family_screen.dart';
 import 'receipt_scanner_screen.dart';
@@ -20,16 +23,36 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   late int _currentIndex;
+  StreamSubscription? _txSubscription;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
 
+    // Listen to real-time notification sync events and display floating banner
+    _txSubscription = ApiSyncService().onNewTransactionStream.listen((tx) {
+      if (mounted) {
+        FloatingNotificationBanner.show(
+          context,
+          title: 'Mutasi Finansial Terekonsiliasi',
+          subtitle: '${tx.appName} • ${tx.merchant}',
+          amount: tx.amount,
+          brand: tx.appName,
+        );
+      }
+    });
+
     // Proactively prompt user for Camera, Notification & Interceptor permissions on startup
     WidgetsBinding.instance.addPostFrameCallback((_) {
       PermissionService().requestAppPermissions(context);
     });
+  }
+
+  @override
+  void dispose() {
+    _txSubscription?.cancel();
+    super.dispose();
   }
 
   void _onTabTapped(int index) {
