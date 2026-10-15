@@ -51,61 +51,10 @@ jobs:
           mkdir -p android/app/src/main/kotlin/com/reconx/agent/reconx_mobile
           cp custom_android/MainActivity.kt android/app/src/main/kotlin/com/reconx/agent/reconx_mobile/MainActivity.kt
           cp custom_android/ReconXNotificationListener.kt android/app/src/main/kotlin/com/reconx/agent/reconx_mobile/ReconXNotificationListener.kt
-          python3 -c "
-          import re
-          with open('android/app/src/main/AndroidManifest.xml', 'r') as f:
-              c = f.read()
-          perms = '''
-              <uses-permission android:name=\"android.permission.INTERNET\"/>
-              <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>
-              <uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\"/>
-              <uses-permission android:name=\"android.permission.CAMERA\"/>
-              <uses-permission android:name=\"android.permission.USE_BIOMETRIC\"/>
-              <uses-permission android:name=\"android.permission.USE_FINGERPRINT\"/>
-          '''
-          srv = '''
-                  <service
-                      android:name=\"com.reconx.agent.reconx_mobile.ReconXNotificationListener\"
-                      android:label=\"ReconX Financial Notification Interceptor\"
-                      android:permission=\"android.permission.BIND_NOTIFICATION_LISTENER_SERVICE\"
-                      android:exported=\"true\">
-                      <intent-filter>
-                          <action android:name=\"android.service.notification.NotificationListenerService\" />
-                      </intent-filter>
-                  </service>
-          '''
-          c = c.replace('<application', perms + '    <application', 1)
-          c = c.replace('</application>', srv + '    </application>', 1)
-          c = re.sub(r'android:label=\"[^\"]*\"', 'android:label=\"Reconx\"', c)
-          with open('android/app/src/main/AndroidManifest.xml', 'w') as f:
-              f.write(c)
-          "
           mkdir -p ~/.android
           cp custom_android/debug.keystore ~/.android/debug.keystore
           cp custom_android/reconx-release.jks android/app/reconx-release.jks
-          python3 -c "
-          import os
-          for gf in ['android/app/build.gradle', 'android/app/build.gradle.kts']:
-              if os.path.exists(gf):
-                  with open(gf, 'r') as f:
-                      txt = f.read()
-                  signing_block = '''
-    signingConfigs {
-        release {
-            storeFile file('reconx-release.jks')
-            storePassword 'reconx2026pass'
-            keyAlias 'reconx'
-            keyPassword 'reconx2026pass'
-        }
-    }
-'''
-                  if 'signingConfigs {' not in txt and 'buildTypes {' in txt:
-                      txt = txt.replace('buildTypes {', signing_block + '\n    buildTypes {', 1)
-                      txt = txt.replace('signingConfig signingConfigs.debug', 'signingConfig signingConfigs.release')
-                      txt = txt.replace('signingConfig = signingConfigs.debug', 'signingConfig = signingConfigs.release')
-                  with open(gf, 'w') as f:
-                      f.write(txt)
-          "
+          python3 custom_android/configure_android.py
 
       - name: Install Dependencies
         run: flutter pub get
