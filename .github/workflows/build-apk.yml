@@ -170,5 +170,3 @@ jobs:
             dist/Reconx-v1.3.11.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
