@@ -327,6 +327,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final user = AuthService().currentUser;
+    final photoUrl = user?.photoUrl;
+    final initial = (user != null && user.name.isNotEmpty) ? user.name[0].toUpperCase() : 'K';
     final syncService = ApiSyncService();
     final themeService = ThemeService();
     final lang = LanguageService();
@@ -372,10 +374,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Row(
                     children: [
-                      if (user?.photoUrl != null && user!.photoUrl.isNotEmpty)
+                      if (photoUrl != null && photoUrl.isNotEmpty)
                         ClipOval(
                           child: Image.network(
-                            user.photoUrl,
+                            photoUrl,
                             width: 56,
                             height: 56,
                             fit: BoxFit.cover,
@@ -383,7 +385,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               radius: 28,
                               backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
                               child: Text(
-                                user.name.isNotEmpty ? user.name[0].toUpperCase() : 'K',
+                                initial,
                                 style: const TextStyle(
                                   color: AppTheme.primaryEmerald,
                                   fontSize: 24,
@@ -398,7 +400,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           radius: 28,
                           backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
                           child: Text(
-                            user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'K',
+                            initial,
                             style: const TextStyle(
                               color: AppTheme.primaryEmerald,
                               fontSize: 24,

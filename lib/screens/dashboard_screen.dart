@@ -125,31 +125,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10.0),
                   child: Center(
-                    child: user?.photoUrl != null && user!.photoUrl.isNotEmpty
-                        ? ClipOval(
-                            child: Image.network(
-                              user.photoUrl,
-                              width: 32,
-                              height: 32,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => CircleAvatar(
-                                radius: 16,
-                                backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
-                                child: Text(
-                                  user.name.isNotEmpty ? user.name[0].toUpperCase() : 'K',
-                                  style: const TextStyle(color: AppTheme.primaryEmerald, fontSize: 13, fontWeight: FontWeight.bold),
-                                ),
+                    child: () {
+                      final photo = user?.photoUrl;
+                      final initial = (user != null && user.name.isNotEmpty) ? user.name[0].toUpperCase() : 'K';
+                      if (photo != null && photo.isNotEmpty) {
+                        return ClipOval(
+                          child: Image.network(
+                            photo,
+                            width: 32,
+                            height: 32,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => CircleAvatar(
+                              radius: 16,
+                              backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
+                              child: Text(
+                                initial,
+                                style: const TextStyle(color: AppTheme.primaryEmerald, fontSize: 13, fontWeight: FontWeight.bold),
                               ),
                             ),
-                          )
-                        : CircleAvatar(
-                            radius: 16,
-                            backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
-                            child: Text(
-                              user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : 'K',
-                              style: const TextStyle(color: AppTheme.primaryEmerald, fontSize: 13, fontWeight: FontWeight.bold),
-                            ),
                           ),
+                        );
+                      }
+                      return CircleAvatar(
+                        radius: 16,
+                        backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
+                        child: Text(
+                          initial,
+                          style: const TextStyle(color: AppTheme.primaryEmerald, fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                      );
+                    }(),
                   ),
                 ),
               ),
