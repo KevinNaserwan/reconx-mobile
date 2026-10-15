@@ -38,6 +38,10 @@ jobs:
           chmod +x android/gradlew
           find android -name "build.gradle*" -exec sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/g' {} + || true
+          find android -name "build.gradle*" -exec sed -i 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' {} + || true
+          find android -name "build.gradle*" -exec sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' {} + || true
+          find android -name "build.gradle*" -exec sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g' {} + || true
+          find android -name "build.gradle*" -exec sed -i 's/targetSdk = flutter.targetSdkVersion/targetSdk = 34/g' {} + || true
 
       - name: Configure Notification Interceptor, Camera & Biometric Permissions
         run: |
@@ -47,7 +51,33 @@ jobs:
           mkdir -p android/app/src/main/kotlin/com/reconx/agent/reconx_mobile
           cp custom_android/MainActivity.kt android/app/src/main/kotlin/com/reconx/agent/reconx_mobile/MainActivity.kt
           cp custom_android/ReconXNotificationListener.kt android/app/src/main/kotlin/com/reconx/agent/reconx_mobile/ReconXNotificationListener.kt
-          cp custom_android/AndroidManifest.xml android/app/src/main/AndroidManifest.xml
+          python3 -c "
+          with open('android/app/src/main/AndroidManifest.xml', 'r') as f:
+              c = f.read()
+          perms = '''
+              <uses-permission android:name=\"android.permission.INTERNET\"/>
+              <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>
+              <uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\"/>
+              <uses-permission android:name=\"android.permission.CAMERA\"/>
+              <uses-permission android:name=\"android.permission.USE_BIOMETRIC\"/>
+              <uses-permission android:name=\"android.permission.USE_FINGERPRINT\"/>
+          '''
+          srv = '''
+                  <service
+                      android:name=\"com.reconx.agent.reconx_mobile.ReconXNotificationListener\"
+                      android:label=\"ReconX Financial Notification Interceptor\"
+                      android:permission=\"android.permission.BIND_NOTIFICATION_LISTENER_SERVICE\"
+                      android:exported=\"true\">
+                      <intent-filter>
+                          <action android:name=\"android.service.notification.NotificationListenerService\" />
+                      </intent-filter>
+                  </service>
+          '''
+          c = c.replace('<application', perms + '    <application', 1)
+          c = c.replace('</application>', srv + '    </application>', 1)
+          with open('android/app/src/main/AndroidManifest.xml', 'w') as f:
+              f.write(c)
+          "
 
       - name: Install Dependencies
         run: flutter pub get
@@ -57,25 +87,13 @@ jobs:
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -XX:+HeapDumpOnOutOfMemoryError"
         run: |
-          flutter build apk --release --no-tree-shake-icons 2>&1 | tee build_output.log
+          flutter build apk --release --no-tree-shake-icons
 
-      - name: Push Build Log to Branch on Failure
-        if: failure()
-        run: |
-          git config --global user.email "bot@reconx.io"
-          git config --global user.name "ReconX Builder"
-          git checkout --orphan build-log 2>/dev/null || git checkout -B build-log
-          git rm -rf . 2>/dev/null || true
-          cp build_output.log log.txt 2>/dev/null || echo "No log found" > log.txt
-          git add log.txt
-          git commit -m "debug: build log" || true
-          git push -f origin build-log || true
-
-      - name: Verify Build & Inspect Logs
+      - name: Verify Build & Prepare Distribution
         run: |
           APK_FILE=$(find build/ -name "*release*.apk" 2>/dev/null | head -n 1)
           if [ -z "$APK_FILE" ]; then
-            APK_FILE=$(find . -name "*.apk" 2>/dev/null | head -n 1)
+            APK_FILE=$(find build/ -name "*.apk" 2>/dev/null | head -n 1)
           fi
           if [ -z "$APK_FILE" ]; then
             echo "::error::Flutter APK not found!"
@@ -85,14 +103,6 @@ jobs:
           mkdir -p dist
           cp "$APK_FILE" dist/ReconX-Companion-v1.1.0.apk
           ls -lh dist/
-
-      - name: Upload Build Log Artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-build-log
-          path: build_output.log
-          retention-days: 7
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
@@ -114,8 +124,8 @@ jobs:
             
             Official Android Companion APK for **ReconX Financial Clearing & Family Reconciliation Engine**.
             
-            - 🚀 **Bottom Navigation:** 5 core modules: Beranda, Mutasi, Scan Nota Fisik, Keluarga, & Pengaturan.
-            - 📸 **Receipt & Payment Scanner:** Auto capture via kamera & foto nota pembayaran fisik, automatic OCR expense extraction.
+            - 🚀 **Bottom Navigation:** 5 modul utama (Beranda, Mutasi, Scan Nota Fisik, Keluarga, & Pengaturan).
+            - 📸 **Receipt & Payment Scanner:** Auto capture via kamera & upload nota fisik dengan AI OCR expense extractor.
             - 🔐 **Biometric Security:** Buka aplikasi dengan Sidik Jari (Fingerprint / Face Unlock).
             - 🎨 **Unified App Icon:** Launcher icon dan internal branding 100% seragam dengan versi Web ReconX.
             - 📡 **Notification Interceptor:** BCA, Superbank, SeaBank, Mandiri Livin, BRImo, BNI, ShopeePay, GoPay, OVO, DANA.
@@ -123,7 +133,7 @@ jobs:
             - 🚪 **Logout & Factory Reset:** Keluar akun dengan aman dan reset data lokal.
             
             #### 📥 Download & Install:
-            Download **`ReconX-Companion-v1.1.0.apk`** below and install it directly on your Android phone.
+            Download file **`ReconX-Companion-v1.1.0.apk`** di bawah ini dan install langsung di HP Android Anda.
           files: dist/ReconX-Companion-v1.1.0.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
