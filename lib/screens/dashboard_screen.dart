@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../services/api_sync_service.dart';
@@ -6,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/language_service.dart';
 import '../services/theme_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_avatar.dart';
 import '../widgets/brand_badge.dart';
 import '../widgets/floating_notification_banner.dart';
 import '../widgets/radar_pulse_indicator.dart';
@@ -147,36 +149,11 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 10.0),
                   child: Center(
-                    child: () {
-                      final photo = user?.photoUrl;
-                      final initial = (user != null && user.name.isNotEmpty) ? user.name[0].toUpperCase() : 'K';
-                      if (photo != null && photo.isNotEmpty) {
-                        return ClipOval(
-                          child: Image.network(
-                            photo,
-                            width: 32,
-                            height: 32,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => CircleAvatar(
-                              radius: 16,
-                              backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
-                              child: Text(
-                                initial,
-                                style: const TextStyle(color: AppTheme.primaryEmerald, fontSize: 13, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-                      return CircleAvatar(
-                        radius: 16,
-                        backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
-                        child: Text(
-                          initial,
-                          style: const TextStyle(color: AppTheme.primaryEmerald, fontSize: 13, fontWeight: FontWeight.bold),
-                        ),
-                      );
-                    }(),
+                    child: AppAvatar(
+                      photoUrl: user?.photoUrl,
+                      name: user?.name ?? 'Kevin',
+                      size: 32,
+                    ),
                   ),
                 ),
               ),
@@ -432,33 +409,50 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                       final item = monitoredApps[idx];
                       final isEnabled = syncService.appFilters[item['key']] ?? true;
 
-                      return Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.getCard(context),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
+                      return InkWell(
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          syncService.toggleAppFilter(item['key']!, !isEnabled);
+                        },
+                        borderRadius: BorderRadius.circular(14),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
                             color: isEnabled
-                                ? AppTheme.primaryEmerald.withOpacity(0.4)
-                                : AppTheme.getBorder(context),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            BrandBadgeHelper.buildBadgeWidget(item['name']!, item['name']!, size: 26),
-                            const SizedBox(width: 8),
-                            Text(
-                              item['name']!,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: isEnabled
-                                    ? AppTheme.getTextPrimary(context)
-                                    : AppTheme.getTextSecondary(context),
-                              ),
+                                ? AppTheme.getCard(context)
+                                : (AppTheme.isDark(context) ? Colors.black26 : const Color(0xFFF1F5F9)),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: isEnabled
+                                  ? AppTheme.primaryEmerald.withOpacity(0.4)
+                                  : AppTheme.getBorder(context).withOpacity(0.5),
                             ),
-                          ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Opacity(
+                                opacity: isEnabled ? 1.0 : 0.4,
+                                child: BrandBadgeHelper.buildBadgeWidget(item['name']!, item['name']!, size: 26),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                item['name']!,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: isEnabled
+                                      ? AppTheme.getTextPrimary(context)
+                                      : AppTheme.getTextSecondary(context).withOpacity(0.5),
+                                ),
+                              ),
+                              if (isEnabled) ...[
+                                const SizedBox(width: 6),
+                                const Icon(Icons.check_circle_rounded, size: 12, color: AppTheme.primaryEmerald),
+                              ],
+                            ],
+                          ),
                         ),
                       );
                     },

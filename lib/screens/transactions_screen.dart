@@ -398,13 +398,29 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
 
               // Transaction List
               Expanded(
-                child: filtered.isEmpty
-                    ? _buildEmptyState()
-                    : ListView.separated(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (ctx, idx) {
+                child: RefreshIndicator(
+                  color: AppTheme.primaryEmerald,
+                  backgroundColor: AppTheme.getCard(context),
+                  onRefresh: () async {
+                    HapticFeedback.lightImpact();
+                    await ApiSyncService().syncActiveNotifications();
+                  },
+                  child: filtered.isEmpty
+                      ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          children: [
+                            SizedBox(
+                              height: MediaQuery.of(context).size.height * 0.5,
+                              child: _buildEmptyState(),
+                            ),
+                          ],
+                        )
+                      : ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                          padding: const EdgeInsets.all(16),
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 10),
+                          itemBuilder: (ctx, idx) {
                           final tx = filtered[idx];
 
                           return InkWell(
@@ -466,6 +482,7 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
                           );
                         },
                       ),
+                ),
               ),
             ],
           );

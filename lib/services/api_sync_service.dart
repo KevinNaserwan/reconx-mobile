@@ -105,13 +105,22 @@ class ApiSyncService extends ChangeNotifier {
       }
     }
 
-    _syncedCountToday = _history.length;
-    _syncedVolumeToday = _history.fold(0.0, (sum, item) => sum + item.amount);
+    _recalculateTodayMetrics();
 
     await checkPermission();
     _startNativeListener();
     await syncActiveNotifications();
     notifyListeners();
+  }
+
+  void _recalculateTodayMetrics() {
+    final now = DateTime.now();
+    final todayTxs = _history.where((tx) =>
+        tx.timestamp.year == now.year &&
+        tx.timestamp.month == now.month &&
+        tx.timestamp.day == now.day);
+    _syncedCountToday = todayTxs.length;
+    _syncedVolumeToday = todayTxs.fold(0.0, (sum, item) => sum + item.amount);
   }
 
   Future<void> _saveProcessedKeys() async {
@@ -309,8 +318,7 @@ class ApiSyncService extends ChangeNotifier {
     );
 
     _history.insert(0, item);
-    _syncedCountToday += 1;
-    _syncedVolumeToday += amount;
+    _recalculateTodayMetrics();
     await _saveHistoryToPrefs();
     _newTransactionController.add(item);
     notifyListeners();
@@ -405,8 +413,7 @@ class ApiSyncService extends ChangeNotifier {
 
         final item = SyncedTransaction.fromJson(data);
         _history.insert(0, item);
-        _syncedCountToday += 1;
-        _syncedVolumeToday += item.amount;
+        _recalculateTodayMetrics();
         await _saveHistoryToPrefs();
         _newTransactionController.add(item);
         notifyListeners();
@@ -432,8 +439,7 @@ class ApiSyncService extends ChangeNotifier {
     );
 
     _history.insert(0, fallbackItem);
-    _syncedCountToday += 1;
-    _syncedVolumeToday += fallbackAmount;
+    _recalculateTodayMetrics();
     await _saveHistoryToPrefs();
     _newTransactionController.add(fallbackItem);
     notifyListeners();

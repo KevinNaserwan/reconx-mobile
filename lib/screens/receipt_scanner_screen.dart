@@ -82,7 +82,9 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
       CurvedAnimation(parent: _laserController, curve: Curves.easeInOut),
     );
 
-    _initCamera();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _initCamera();
+    });
   }
 
   @override
@@ -134,13 +136,23 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
         orElse: () => cameras.first,
       );
 
-      final controller = CameraController(
-        backCamera,
-        ResolutionPreset.high,
-        enableAudio: false,
-      );
-
-      await controller.initialize();
+      CameraController controller;
+      try {
+        controller = CameraController(
+          backCamera,
+          ResolutionPreset.high,
+          enableAudio: false,
+        );
+        await controller.initialize();
+      } catch (presetError) {
+        debugPrint('[Camera] High resolution preset failed, falling back to medium: $presetError');
+        controller = CameraController(
+          backCamera,
+          ResolutionPreset.medium,
+          enableAudio: false,
+        );
+        await controller.initialize();
+      }
 
       if (mounted) {
         setState(() {
@@ -218,13 +230,35 @@ class _ReceiptScannerScreenState extends State<ReceiptScannerScreen>
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Nota tidak terdeteksi. Kamera tidak menemukan teks struk kasir atau bukti pembayaran. Pastikan foto jelas dan tidak buram.',
+                    'Nota belum terbaca otomatis. Ingin lengkapi nominal secara manual?',
                     style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
             ),
-            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'Isi Manual',
+              textColor: Colors.white,
+              onPressed: () {
+                final manualResult = ReceiptScanResult(
+                  imagePath: photoPath!,
+                  merchant: 'Merchant / Toko',
+                  amount: 0.0,
+                  date: DateTime.now(),
+                  paymentMethod: 'QRIS BCA',
+                  category: 'Konsumsi & F&B',
+                  detectedItems: ['Pengeluaran Fisik'],
+                  confidenceScore: 0.5,
+                );
+                _merchantController.text = manualResult.merchant;
+                _amountController.text = '';
+                setState(() {
+                  _scanResult = manualResult;
+                  _isProcessing = false;
+                });
+              },
+            ),
+            duration: const Duration(seconds: 6),
           ),
         );
       }

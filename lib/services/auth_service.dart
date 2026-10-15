@@ -112,7 +112,7 @@ class AuthService extends ChangeNotifier {
 
       final name = account?.displayName ?? 'Kevin Naserwan';
       final email = account?.email ?? 'kevin.naserwan@gmail.com';
-      final photoUrl = account?.photoUrl ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kevin';
+      final photoUrl = account?.photoUrl ?? 'https://api.dicebear.com/7.x/avataaars/png?seed=Kevin';
 
       final profile = UserProfile(
         name: name,
@@ -158,7 +158,7 @@ class AuthService extends ChangeNotifier {
         name: name,
         email: email,
         phoneNumber: phoneNumber?.isNotEmpty == true ? phoneNumber! : '081234567890',
-        photoUrl: photoUrl ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=${Uri.encodeComponent(name)}',
+        photoUrl: photoUrl ?? 'https://api.dicebear.com/7.x/avataaars/png?seed=${Uri.encodeComponent(name)}',
         role: finalRole,
         token: 'reconx_mobile_bearer_${DateTime.now().millisecondsSinceEpoch}',
         familyId: 'fam-${DateTime.now().millisecondsSinceEpoch}',

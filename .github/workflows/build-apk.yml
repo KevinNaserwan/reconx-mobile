@@ -114,6 +114,7 @@ jobs:
           fi
           echo "Found APK: $APK_FILE"
           mkdir -p dist
+          cp "$APK_FILE" dist/Reconx-v1.3.8.apk
           cp "$APK_FILE" dist/Reconx-v1.3.7.apk
           cp "$APK_FILE" dist/Reconx-v1.3.6.apk
           cp "$APK_FILE" dist/Reconx-v1.3.5.apk
@@ -125,35 +126,35 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Reconx-v1.3.7-APK
-          path: dist/Reconx-v1.3.7.apk
+          name: Reconx-v1.3.8-APK
+          path: dist/Reconx-v1.3.8.apk
           retention-days: 30
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.3.7
-          name: "Reconx Android v1.3.7 (Auto-Rebind Notification Interceptor & Smart Receipt OCR)"
+          tag_name: v1.3.8
+          name: "Reconx Android v1.3.8 (Accurate Daily Metrics, Mutasi Pull-to-Refresh & Crash-Proof Avatars)"
           draft: false
           prerelease: false
           overwrite: true
           body: |
-            ### Reconx Android v1.3.7 Official Release
+            ### Reconx Android v1.3.8 Official Release
 
-            Pembaruan sistem intersepsi notifikasi Android, sinkronisasi pull-to-refresh alami, dan toleransi pemindaian nota fisik:
+            Pembaruan komprehensif stabilitas data, perhitungan metrik hari ini, pull-to-refresh mutasi, dan pengalaman profil:
 
-            - ⚡ **Auto-Rebind NotificationListener:** Otomatis memicu `requestRebind` saat aplikasi dibuka atau kembali dari background (`onResume`), mencegah service tersuspensi oleh manajemen baterai Android OS.
-            - 📥 **Pencocokan Lengkap Notifikasi QRIS (blu by BCA & E-Wallet):** Menggabungkan judul, teks isi, dan subteks sehingga format notifikasi transaksi seperti `"yes, transaksi qris berhasil! transaksi di indomaret rp 10.500"` terdeteksi utuh (nominal Rp 10.500 dan merchant Indomaret langsung terpetakan).
-            - 🔄 **Native Pull-to-Refresh:** Menghapus tombol sinkronisasi manual di AppBar dan mengaktifkan `AlwaysScrollableScrollPhysics` agar gestur tarik layar ke bawah (*pull-down*) bekerja mulus di Android untuk memindai notifikasi HP.
-            - 🧾 **Smart Indonesian Receipt OCR:** Deteksi cerdas merek ritel (Indomaret, Alfamart, Alfamidi, Superindo, SPBU, dll.) dengan toleransi pencarian nominal yang fleksibel tanpa penolakan prematur.
-            - 🧹 **Pembersihan Pengaturan Akun:** Tombol *Reset Seluruh Data Mutasi Lokal* telah dihilangkan dari halaman Akun.
+            - 📊 **Kalkulasi Metrik Harian Akurat:** Penghitungan transaksi dan volume nominal hari ini kini secara konsisten difilter berdasarkan tanggal kalender berjalan hari ini (`year, month, day`), bukan lagi menampilkan akumulasi histori total.
+            - 🔄 **Pull-to-Refresh di Tab Mutasi:** Halaman Daftar Mutasi kini dilengkapi `RefreshIndicator` dengan animasi haptik, memungkinkan Anda menarik layar ke bawah kapan pun untuk menyinkronkan notifikasi bank yang ada di baki HP.
+            - 🖼️ **Foto Profil dari Galeri & Avatar Crash-Proof:** Memperkenalkan `AppAvatar` terpadu yang mendukung foto langsung dari galeri HP, URL Google / Avatar PNG raster, serta fallback inisial tanpa risiko kegagalan rendering SVG.
+            - 📷 **Live Viewfinder Camera Fallback & Manual Input:** Resolusi kamera otomatis beralih ke `medium` jika `high` tidak didukung oleh perangkat, serta opsi *"Isi Manual"* langsung dari notifikasi pop-up jika struk/nota buram atau terlipat.
+            - 🎛️ **Filter Aplikasi Terpantau Interaktif:** Ikon aplikasi bank/e-wallet terpantau di Beranda kini dapat diklik langsung untuk mengaktifkan/menonaktifkan filter pemantauan secara instan.
 
             #### 📥 Download Langsung:
-            Download file **`Reconx-v1.3.7.apk`** di bawah ini dan pasang langsung di HP Android Anda.
+            Download file **`Reconx-v1.3.8.apk`** di bawah ini dan pasang langsung di HP Android Anda.
           files: |
+            dist/Reconx-v1.3.8.apk
             dist/Reconx-v1.3.7.apk
             dist/Reconx-v1.3.6.apk
-            dist/Reconx-v1.3.5.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

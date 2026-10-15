@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../services/api_sync_service.dart';
 import '../services/auth_service.dart';
 import '../services/biometric_service.dart';
 import '../services/language_service.dart';
 import '../services/theme_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_avatar.dart';
 import '../widgets/floating_notification_banner.dart';
 import 'login_screen.dart';
 
@@ -95,13 +97,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Foto Profil (URL)
-                  _buildInputLabel('Foto Profil (URL Google / Avatar)', context),
+                  // Foto Profil (URL atau Galeri HP)
+                  _buildInputLabel('Foto Profil (URL Google / Galeri HP)', context),
                   const SizedBox(height: 6),
-                  TextField(
-                    controller: photoCtrl,
-                    style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 14),
-                    decoration: _inputDecoration('https://... (Foto Google atau Avatar)', context),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: photoCtrl,
+                          style: TextStyle(color: AppTheme.getTextPrimary(context), fontSize: 13),
+                          decoration: _inputDecoration('URL Foto atau pilih dari galeri', context),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: () async {
+                          final picker = ImagePicker();
+                          final picked = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+                          if (picked != null) {
+                            setSheetState(() {
+                              photoCtrl.text = picked.path;
+                            });
+                          }
+                        },
+                        icon: const Icon(Icons.add_photo_alternate_rounded, color: AppTheme.primaryEmerald),
+                        tooltip: 'Pilih dari Galeri',
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppTheme.primaryEmerald.withOpacity(0.12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 14),
 
@@ -333,40 +359,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   Row(
                     children: [
-                      if (photoUrl != null && photoUrl.isNotEmpty)
-                        ClipOval(
-                          child: Image.network(
-                            photoUrl,
-                            width: 56,
-                            height: 56,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => CircleAvatar(
-                              radius: 28,
-                              backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
-                              child: Text(
-                                initial,
-                                style: const TextStyle(
-                                  color: AppTheme.primaryEmerald,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        )
-                      else
-                        CircleAvatar(
-                          radius: 28,
-                          backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
-                          child: Text(
-                            initial,
-                            style: const TextStyle(
-                              color: AppTheme.primaryEmerald,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
+                      AppAvatar(
+                        photoUrl: photoUrl,
+                        name: user?.name ?? 'Kevin Naserwan',
+                        size: 56,
+                      ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(

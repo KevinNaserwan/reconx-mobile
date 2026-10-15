@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/app_avatar.dart';
 
 class FamilyScreen extends StatelessWidget {
   const FamilyScreen({super.key});
@@ -280,7 +281,7 @@ class FamilyScreen extends StatelessWidget {
               email: 'anan@reconx.local',
               deviceStatus: 'Terhubung (Companion Sync Aktif)',
               isOnline: true,
-              photoUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Anan',
+              photoUrl: 'https://api.dicebear.com/7.x/avataaars/png?seed=Anan',
             ),
             const SizedBox(height: 10),
 
@@ -357,32 +358,11 @@ class FamilyScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (photoUrl != null && photoUrl.isNotEmpty)
-            ClipOval(
-              child: Image.network(
-                photoUrl,
-                width: 44,
-                height: 44,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => CircleAvatar(
-                  radius: 22,
-                  backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
-                  child: Text(
-                    name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                    style: const TextStyle(color: AppTheme.primaryEmerald, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            )
-          else
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: AppTheme.primaryEmerald.withOpacity(0.2),
-              child: Text(
-                name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                style: const TextStyle(color: AppTheme.primaryEmerald, fontWeight: FontWeight.bold),
-              ),
-            ),
+          AppAvatar(
+            photoUrl: photoUrl,
+            name: name,
+            size: 44,
+          ),
           const SizedBox(width: 14),
           Expanded(
             child: Column(
