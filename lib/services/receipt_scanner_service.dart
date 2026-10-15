@@ -70,13 +70,18 @@ class ReceiptScannerService {
     final random = Random();
     final chosen = sampleMerchants[random.nextInt(sampleMerchants.length)];
 
-    // Generate realistic realistic random total amount based on merchant category
+    final merchantName = (chosen['name'] as String?) ?? 'Merchant Partner';
+    final paymentMethod = (chosen['method'] as String?) ?? 'QRIS BCA';
+    final category = (chosen['cat'] as String?) ?? 'Konsumsi & F&B';
+    final items = List<String>.from((chosen['items'] as List?) ?? []);
+
+    // Generate realistic random total amount based on merchant category
     double parsedAmount = 45000.0;
-    if (chosen['name']!.contains('SPBU')) {
+    if (merchantName.contains('SPBU')) {
       parsedAmount = 150000.0 + (random.nextInt(10) * 10000.0);
-    } else if (chosen['name']!.contains('Superindo') || chosen['name']!.contains('Alfamart')) {
+    } else if (merchantName.contains('Superindo') || merchantName.contains('Alfamart')) {
       parsedAmount = 85000.0 + (random.nextInt(25) * 5000.0);
-    } else if (chosen['name']!.contains('Solaria') || chosen['name']!.contains('Starbucks')) {
+    } else if (merchantName.contains('Solaria') || merchantName.contains('Starbucks')) {
       parsedAmount = 62000.0 + (random.nextInt(15) * 5000.0);
     } else {
       parsedAmount = 35000.0 + (random.nextInt(8) * 5000.0);
@@ -84,12 +89,12 @@ class ReceiptScannerService {
 
     return ReceiptScanResult(
       imagePath: imagePath,
-      merchant: chosen['name']!,
+      merchant: merchantName,
       amount: parsedAmount,
       date: DateTime.now(),
-      paymentMethod: chosen['method']!,
-      category: chosen['cat']!,
-      detectedItems: List<String>.from(chosen['items'] as List),
+      paymentMethod: paymentMethod,
+      category: category,
+      detectedItems: items,
       confidenceScore: 0.96 + (random.nextDouble() * 0.03),
     );
   }
