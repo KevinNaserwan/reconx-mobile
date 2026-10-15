@@ -190,6 +190,10 @@ class BrandBadgeHelper {
     );
   }
 
+  static Widget buildBadge(String brand, {double size = 44}) {
+    return buildBadgeWidget(brand, brand, size: size);
+  }
+
   static Widget buildBadgeWidget(String appName, String merchant, {String? channel, double size = 44}) {
     final badge = getBadge(appName, merchant, channel: channel);
 
