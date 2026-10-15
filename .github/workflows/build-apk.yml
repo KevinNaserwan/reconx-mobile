@@ -42,6 +42,7 @@ jobs:
           find android -name "build.gradle*" -exec sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g' {} + || true
           find android -name "build.gradle*" -exec sed -i 's/targetSdk = flutter.targetSdkVersion/targetSdk = 34/g' {} + || true
+          echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
 
       - name: Configure Notification Interceptor, Camera & Biometric Permissions
         run: |
@@ -87,7 +88,7 @@ jobs:
             git config --global user.email "bot@reconx.io"
             git config --global user.name "ReconX Builder"
             git checkout -B build-log
-            grep -B 10 -A 25 "compileReleaseKotlin" build.log > log.txt || tail -n 1500 build.log > log.txt
+            tail -n 1500 build.log > log.txt
             git add log.txt
             git commit -m "debug: build error log" || true
             git push -f origin build-log || true
@@ -173,8 +174,9 @@ jobs:
               - Menghapus opsi reset data mutasi agar riwayat transaksi aman dan permanen tersimpan.
 
             #### 📥 Download Langsung:
-            Download file **`Reconx-v1.3.14.apk`** di bawah ini dan pasang langsung di HP Android Anda.
+            Download file **`Reconx-v1.3.15.apk`** di bawah ini dan pasang langsung di HP Android Anda.
           files: |
+            dist/Reconx-v1.3.15.apk
             dist/Reconx-v1.3.14.apk
             dist/Reconx-v1.3.13.apk
             dist/Reconx-v1.3.12.apk
