@@ -53,16 +53,31 @@ class SyncedTransaction {
     
     // Resolve transaction type (INCOME vs EXPENSE)
     String resolvedType = (json['type'] ?? json['transactionType'] ?? '').toString().toUpperCase();
-    if (resolvedType != 'INCOME' && resolvedType != 'EXPENSE') {
-      final combined = '${json['title'] ?? ''} ${json['content'] ?? ''} ${rawNotif?['title'] ?? ''} ${rawNotif?['content'] ?? ''}'.toLowerCase();
-      final isInc = combined.contains('masuk') ||
-          combined.contains('menerima') ||
+    final combined = '${json['title'] ?? ''} ${json['content'] ?? ''} ${rawNotif?['title'] ?? ''} ${rawNotif?['content'] ?? ''}'.toLowerCase();
+
+    // Guard against QRIS payments being misclassified as INCOME
+    if ((combined.contains('qris') || combined.contains('pembayaran') || combined.contains('bayar')) &&
+        !combined.contains('terima qris') &&
+        !combined.contains('qris masuk') &&
+        !combined.contains('qris diterima') &&
+        !combined.contains('terima pembayaran')) {
+      resolvedType = 'EXPENSE';
+    } else if (resolvedType != 'INCOME' && resolvedType != 'EXPENSE') {
+      final isInc = combined.contains('uang masuk') ||
+          combined.contains('dana masuk') ||
+          combined.contains('transfer masuk') ||
           combined.contains('terima uang') ||
-          combined.contains('top up') ||
-          combined.contains('kredit') ||
+          combined.contains('menerima transfer') ||
+          combined.contains('transfer dari') ||
+          combined.contains('diterima dari') ||
           combined.contains('cashback') ||
           combined.contains('refund') ||
-          combined.contains('setoran');
+          combined.contains('pengembalian dana') ||
+          combined.contains('setoran tunai') ||
+          combined.contains('setor tunai') ||
+          combined.contains('gaji') ||
+          (combined.contains('top up') && !combined.contains('top up gopay') && !combined.contains('top up ovo') && !combined.contains('top up dana')) ||
+          (combined.contains('kredit') && !combined.contains('kartu kredit'));
       resolvedType = isInc ? 'INCOME' : 'EXPENSE';
     }
 

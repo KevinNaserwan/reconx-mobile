@@ -130,15 +130,45 @@ class ApiSyncService extends ChangeNotifier {
       }
     }
 
-    // Load persisted real transaction history
+    // Load persisted real transaction history & auto-sanitize bogus items
     _history.clear();
     final savedHistoryJson = prefs.getString('reconx_saved_history');
     if (savedHistoryJson != null) {
       try {
         final List<dynamic> decoded = jsonDecode(savedHistoryJson);
         for (final item in decoded) {
-          _history.add(SyncedTransaction.fromJson(Map<String, dynamic>.from(item)));
+          final txMap = Map<String, dynamic>.from(item);
+          final pkg = (txMap['packageName'] ?? '').toString().toLowerCase();
+          final title = (txMap['title'] ?? '').toString().toLowerCase();
+          final content = (txMap['content'] ?? '').toString().toLowerCase();
+          final merchant = (txMap['merchant'] ?? '').toString().toLowerCase();
+          final combined = '$title $content $pkg $merchant';
+
+          // 1. Purge non-banking chat/trading signals (e.g. Telegram "buy or sell 73640")
+          if (pkg.contains('telegram') ||
+              pkg.contains('whatsapp') ||
+              pkg.contains('discord') ||
+              pkg.contains('tradingview') ||
+              combined.contains('buy or sell') ||
+              combined.contains('buy/sell') ||
+              combined.contains('trading signal') ||
+              combined.contains('73640') ||
+              combined.contains('73.640')) {
+            debugPrint('[Sanitize] Purged bogus non-banking transaction: $merchant - ${txMap["amount"]}');
+            continue;
+          }
+
+          // 2. Correct QRIS payments misclassified as INCOME
+          if ((combined.contains('qris') || combined.contains('pembayaran') || combined.contains('bayar')) &&
+              !combined.contains('terima qris') &&
+              !combined.contains('qris masuk') &&
+              !combined.contains('terima pembayaran')) {
+            txMap['type'] = 'EXPENSE';
+          }
+
+          _history.add(SyncedTransaction.fromJson(txMap));
         }
+        await _saveHistoryToPrefs();
       } catch (e) {
         debugPrint('Failed to load saved history: $e');
       }
@@ -188,7 +218,22 @@ class ApiSyncService extends ChangeNotifier {
   bool isNotificationAllowed(String appPackage, String title, String content) {
     if (!_isServiceActive) return false;
 
-    final combined = '${appPackage.toLowerCase()} ${title.toLowerCase()} ${content.toLowerCase()}';
+    final pkg = appPackage.toLowerCase();
+    // Strict blacklist for non-banking apps (chat, social, trading signal channels)
+    if (pkg.contains('telegram') ||
+        pkg.contains('whatsapp') ||
+        pkg.contains('discord') ||
+        pkg.contains('slack') ||
+        pkg.contains('twitter') ||
+        pkg.contains('instagram') ||
+        pkg.contains('tiktok') ||
+        pkg.contains('tradingview') ||
+        pkg.contains('metaquotes') ||
+        pkg.contains('binance')) {
+      return false;
+    }
+
+    final combined = '$pkg ${title.toLowerCase()} ${content.toLowerCase()}';
 
     if (combined.contains('bca') || combined.contains('blu')) {
       return _appFilters['bca'] ?? true;
@@ -222,6 +267,100 @@ class ApiSyncService extends ChangeNotifier {
     }
 
     return true; // Default allow for other detected financial notifications
+  }
+
+  /// High-Precision Transaction Type (INCOME vs EXPENSE) Resolver
+  static String resolveTransactionType(String text) {
+    final lower = text.toLowerCase();
+
+    // 1. Definite EXPENSE (Uang Keluar) Triggers
+    // Any QRIS payment is EXPENSE unless explicitly receiving QRIS as a merchant
+    final isQrisExpense = lower.contains('qris') &&
+        !lower.contains('terima qris') &&
+        !lower.contains('qris masuk') &&
+        !lower.contains('qris diterima') &&
+        !lower.contains('pembayaran qris diterima');
+
+    final isGeneralExpense = lower.contains('pembayaran') ||
+        lower.contains('bayar') ||
+        lower.contains('dibayar') ||
+        lower.contains('pembelian') ||
+        lower.contains('beli') ||
+        lower.contains('debit') ||
+        lower.contains('pendebetan') ||
+        lower.contains('tarik tunai') ||
+        lower.contains('penarikan tunai') ||
+        lower.contains('transfer ke') ||
+        lower.contains('kirim uang ke') ||
+        lower.contains('ke rekening') ||
+        lower.contains('tagihan') ||
+        lower.contains('biaya') ||
+        lower.contains('belanja') ||
+        lower.contains('kartu kredit');
+
+    // 2. Definite INCOME (Uang Masuk) Triggers
+    final hasGenuineIncomeKeyword = lower.contains('uang masuk') ||
+        lower.contains('dana masuk') ||
+        lower.contains('transfer masuk') ||
+        lower.contains('terima uang') ||
+        lower.contains('menerima transfer') ||
+        lower.contains('transfer dari') ||
+        lower.contains('diterima dari') ||
+        lower.contains('kiriman uang') ||
+        lower.contains('cashback') ||
+        lower.contains('refund') ||
+        lower.contains('pengembalian dana') ||
+        lower.contains('setoran tunai') ||
+        lower.contains('setor tunai') ||
+        lower.contains('gaji') ||
+        lower.contains('payroll') ||
+        lower.contains('bunga simpanan') ||
+        lower.contains('bagi hasil') ||
+        (lower.contains('top up') && !lower.contains('top up gopay') && !lower.contains('top up ovo') && !lower.contains('top up dana')) ||
+        (lower.contains('kredit') && !lower.contains('kartu kredit')) ||
+        lower.contains('dikreditkan');
+
+    final hasBoundedMasuk = RegExp(r'\b(uang|dana|saldo|transfer)\s+masuk\b|\bmasuk\s+(sebesar|rp)\b').hasMatch(lower);
+
+    if (hasGenuineIncomeKeyword || hasBoundedMasuk) {
+      // If payment keywords co-exist with money receiving info, payment takes precedence for the payer
+      if (isQrisExpense || lower.contains('pembayaran berhasil') || lower.contains('pembayaran qris')) {
+        return 'EXPENSE';
+      }
+      return 'INCOME';
+    }
+
+    if (isQrisExpense || isGeneralExpense) {
+      return 'EXPENSE';
+    }
+
+    return 'EXPENSE'; // Default safe for personal financial spending
+  }
+
+  /// Delete a single transaction (e.g. accidental entry, duplicate, or misread)
+  Future<bool> deleteTransaction(String id) async {
+    final index = _history.indexWhere((tx) => tx.id == id);
+    if (index != -1) {
+      _history.removeAt(index);
+      _recalculateTodayMetrics();
+      await _saveHistoryToPrefs();
+      notifyListeners();
+
+      // Async notify backend to delete if synced
+      try {
+        final user = AuthService().currentUser;
+        final uri = Uri.parse('$_backendUrl/mobile/transaction/$id');
+        http.delete(
+          uri,
+          headers: {
+            'Authorization': 'Bearer ${user?.token ?? ""}',
+          },
+        ).timeout(const Duration(seconds: 4));
+      } catch (_) {}
+
+      return true;
+    }
+    return false;
   }
 
   Future<void> _saveHistoryToPrefs() async {
@@ -484,7 +623,26 @@ class ApiSyncService extends ChangeNotifier {
     String? notificationKey,
   }) async {
     final user = AuthService().currentUser;
-    final fullText = '$title $content'.toLowerCase();
+    final pkgLower = appPackage.toLowerCase();
+    final fullText = '$title $content $pkgLower'.toLowerCase();
+
+    // STRICT FILTER 0: Reject non-banking / messaging / trading signal apps
+    if (pkgLower.contains('telegram') ||
+        pkgLower.contains('whatsapp') ||
+        pkgLower.contains('discord') ||
+        pkgLower.contains('slack') ||
+        pkgLower.contains('twitter') ||
+        pkgLower.contains('instagram') ||
+        pkgLower.contains('tiktok') ||
+        pkgLower.contains('tradingview') ||
+        pkgLower.contains('metaquotes') ||
+        pkgLower.contains('binance') ||
+        fullText.contains('buy or sell') ||
+        fullText.contains('buy/sell') ||
+        fullText.contains('trading signal')) {
+      debugPrint('[ApiSyncService] Ignored non-banking notification: $appPackage ($title)');
+      return null;
+    }
 
     // STRICT FILTER 1: Exclude non-financial promotional noise, OTPs, and background services
     if (fullText.contains('promo') ||
@@ -550,15 +708,7 @@ class ApiSyncService extends ChangeNotifier {
     _processedNotificationKeys.add(uniqueKey);
     _saveProcessedKeys();
 
-    final isIncome = fullText.contains('masuk') ||
-        fullText.contains('menerima') ||
-        fullText.contains('terima uang') ||
-        fullText.contains('top up') ||
-        fullText.contains('kredit') ||
-        fullText.contains('cashback') ||
-        fullText.contains('refund') ||
-        fullText.contains('setoran');
-    final txType = isIncome ? 'INCOME' : 'EXPENSE';
+    final txType = resolveTransactionType('$title $content');
     final detectedMerchant = _extractMerchantClientSide('$title $content');
 
     try {

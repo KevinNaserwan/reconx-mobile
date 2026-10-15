@@ -117,6 +117,7 @@ jobs:
           fi
           echo "Found APK: $APK_FILE"
           mkdir -p dist
+          cp "$APK_FILE" dist/Reconx-v1.3.16.apk
           cp "$APK_FILE" dist/Reconx-v1.3.15.apk
           cp "$APK_FILE" dist/Reconx-v1.3.14.apk
           cp "$APK_FILE" dist/Reconx-v1.3.13.apk
@@ -129,55 +130,46 @@ jobs:
           cp "$APK_FILE" dist/Reconx-v1.3.6.apk
           cp "$APK_FILE" dist/Reconx-v1.3.5.apk
           cp "$APK_FILE" dist/Reconx-v1.3.4.apk
-          cp "$APK_FILE" dist/Reconx-v1.3.3.apk
           cp "$APK_FILE" dist/Reconx-v1.3.2.apk
           ls -lh dist/
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Reconx-v1.3.15-APK
-          path: dist/Reconx-v1.3.15.apk
+          name: Reconx-v1.3.16-APK
+          path: dist/Reconx-v1.3.16.apk
           retention-days: 30
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
         with:
-          tag_name: v1.3.15
-          name: "Reconx Android v1.3.15 (PaddleOCR PP-OCRv4 Engine Integration & Smart Cloud/Offline Fallback)"
+          tag_name: v1.3.16
+          name: "Reconx Android v1.3.16 (Strict Banking Whitelist, Fix QRIS Expense (-) & Telegram Signal Rejection)"
           draft: false
           prerelease: false
           overwrite: true
           body: |
-            ### Reconx Android v1.3.15 Official Release
+            ### Reconx Android v1.3.16 Official Release
 
-            Integrasi penuh teknologi **PaddleOCR PP-OCRv4** untuk akurasi pengenalan nota fisik & screenshot perbankan/dompet digital:
+            Perbaikan akurasi pembacaan notifikasi keuangan & pemfilteran ketat aplikasi:
 
-            - 🚀 **Integrasi PaddleOCR PP-OCRv4 Engine:**
-              - Menggunakan mesin deep-learning PaddleOCR untuk ekstraksi teks nota dan bukti transfer dengan akurasi 98-99%.
-              - Arsitektur Hybrid Cerdas: Memprioritaskan PaddleOCR Engine saat online, dan otomatis beralih ke Google ML Kit on-device saat offline tanpa freeze/crash.
-              - Indikator badge mesin OCR langsung pada lembar tinjauan struk (`✓ PaddleOCR PP-OCRv4 (99%)`).
-            - 🏦 **Tuning Super Presisi OCR Bukti Transfer M-Banking:**
-              - Mengatasi bukti transfer M-Banking Indonesia (blu BCA Digital, BCA Mobile, Livin' Mandiri, BRImo, dll).
-              - Mendeteksi header `Nominal` multi-baris (`Rp 38.490,00`, `Rp 940.571,00`).
-              - Memblokir tombol navigasi aplikasi (`Kembali ke Beranda`, dll) agar tidak salah terdeteksi sebagai uang kembalian tunai.
-              - Ekstraksi cerdas nama penerima transfer sesungguhnya (bukan label status transaksi).
-            - 💰 **Total Saldo Kas Bersih (Net Cashflow Balance):**
-              - Menampilkan ringkasan Total Saldo Kas Kumulatif (Uang Masuk dikurangi Uang Keluar).
-              - Kartu ringkasan kas bersih di Dashboard dan layar Riwayat Mutasi.
-            - 👨‍👩‍👧 **Keuangan Keluarga & Pemisahan Mutasi Per Anggota:**
-              - Pembagian keuangan untuk anggota keluarga: **Kevin**, **Istri**, dan **Anak**.
-              - Filter cepat per anggota di layar Mutasi.
-              - Ringkasan saldo dan arus kas masing-masing anggota di Dashboard.
-            - ✍️ **Pencatatan Mutasi Manual (Uang Masuk / Keluar):**
-              - Modal pencatatan transaksi manual lengkap dengan nominal, kategori, anggota keluarga, dompet/metode pembayaran, dan catatan.
-            - 🔒 **Zero Data Loss (Tanpa Reset Mutasi):**
-              - Menghapus opsi reset data mutasi agar riwayat transaksi aman dan permanen tersimpan.
+            - 🛡️ **Penyaringan Ketat Aplikasi Perbankan & Dompet Digital (Strict Whitelist):**
+              - Menolak secara mutlak notifikasi dari aplikasi chat/media sosial (Telegram, WhatsApp, Discord, Slack, dll) serta sinyal trading ("buy or sell 73640").
+              - Notifikasi hanya akan di-intersep jika berasal dari aplikasi resmi perbankan (BCA, Mandiri, BRI, BNI, SeaBank, Superbank, dll) dan dompet digital (GoPay, OVO, DANA, ShopeePay).
+            - 💳 **Koreksi Presisi Transaksi QRIS (Wajib Pengeluaran / Uang Keluar):**
+              - Memperbaiki klasifikasi pembayaran QRIS agar selalu tercatat sebagai **Uang Keluar (-)** dan bukan Uang Masuk (+).
+              - Menghilangkan *false-positive* yang sebelumnya tertipu kata "masuk" pada kalimat notifikasi (misal: "termasuk biaya admin" atau "masuk ke riwayat transaksi").
+            - 🧹 **Auto-Sanitasi Data Mutasi Saat Buka Aplikasi:**
+              - Otomatis membersihkan transaksi non-perbankan palsu (seperti sinyal Telegram "buy or sell") yang sempat terekam di versi sebelumnya.
+              - Otomatis mengoreksi transaksi QRIS lama yang sempat tersimpan sebagai uang masuk menjadi uang keluar secara otomatis.
+            - 🗑️ **Tombol Hapus Transaksi Tunggal (Delete Single Item):**
+              - Menambahkan tombol "Hapus Transaksi" pada lembar detail transaksi untuk menghapus transaksi yang salah tanpa menghapus riwayat lainnya.
 
             #### 📥 Download Langsung:
-            Download file **`Reconx-v1.3.15.apk`** di bawah ini dan pasang langsung di HP Android Anda.
+            Download file **`Reconx-v1.3.16.apk`** di bawah ini dan pasang langsung di HP Android Anda.
           files: |
+            dist/Reconx-v1.3.16.apk
             dist/Reconx-v1.3.15.apk
             dist/Reconx-v1.3.14.apk
             dist/Reconx-v1.3.13.apk

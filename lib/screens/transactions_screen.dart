@@ -547,18 +547,91 @@ class _TransactionsScreenState extends State<TransactionsScreen> {
               _buildDetailRow('Waktu Transaksi (WIB)', '${dateFormat.format(tx.timestampWib)} WIB'),
               _buildDetailRow('Catatan Raw', tx.content),
               const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isDark ? AppTheme.darkCard : const Color(0xFFE2E8F0),
-                    foregroundColor: AppTheme.getTextPrimary(context),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.dangerRose, size: 18),
+                      label: Text(
+                        'Hapus Transaksi',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.dangerRose,
+                          fontSize: 13,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: AppTheme.dangerRose.withOpacity(0.5)),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () async {
+                        final confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (c) => AlertDialog(
+                            backgroundColor: AppTheme.getCard(context),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            title: Text(
+                              'Hapus Transaksi Ini?',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                                color: AppTheme.getTextPrimary(context),
+                              ),
+                            ),
+                            content: Text(
+                              'Transaksi ${tx.merchant} sebesar ${currencyFormat.format(tx.amount)} akan dihapus dari histori.',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                color: AppTheme.getTextSecondary(context),
+                              ),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(c, false),
+                                child: Text('Batal', style: TextStyle(color: AppTheme.getTextSecondary(context))),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.pop(c, true),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppTheme.dangerRose,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('Hapus'),
+                              ),
+                            ],
+                          ),
+                        );
+                        if (confirm == true) {
+                          Navigator.pop(ctx);
+                          await ApiSyncService().deleteTransaction(tx.id);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                backgroundColor: AppTheme.primaryEmerald,
+                                content: Text('Transaksi berhasil dihapus.'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
+                        }
+                      },
+                    ),
                   ),
-                  child: const Text('Tutup'),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDark ? AppTheme.darkCard : const Color(0xFFE2E8F0),
+                        foregroundColor: AppTheme.getTextPrimary(context),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('Tutup'),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

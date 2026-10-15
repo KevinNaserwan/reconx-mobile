@@ -152,7 +152,25 @@ class ReconXNotificationListener : NotificationListenerService() {
             return false
         }
 
-        // 3. Target package recognition (both exact and substring matching for Indonesian financial apps)
+        // 2. Reject non-financial apps (chat, social, messaging, trading signal bots)
+        val isBlacklistedApp = packageName.contains("telegram") ||
+                               packageName.contains("whatsapp") ||
+                               packageName.contains("discord") ||
+                               packageName.contains("slack") ||
+                               packageName.contains("twitter") ||
+                               packageName.contains("instagram") ||
+                               packageName.contains("tiktok") ||
+                               packageName.contains("metaquotes") ||
+                               packageName.contains("tradingview") ||
+                               packageName.contains("binance") ||
+                               packageName.contains("youtube") ||
+                               packageName.contains("browser") ||
+                               packageName.contains("chrome")
+        if (isBlacklistedApp) {
+            return false
+        }
+
+        // 3. Target package recognition (Indonesian banking, e-wallets, and fintech platforms)
         val isTargetApp = TARGET_PACKAGES.any { packageName.contains(it) } ||
                           packageName.contains("bcadigital") ||
                           packageName.contains("blu") ||
@@ -170,7 +188,17 @@ class ReconXNotificationListener : NotificationListenerService() {
                           packageName.contains("ovo") ||
                           packageName.contains("shopee") ||
                           packageName.contains("jenius") ||
-                          packageName.contains("jago")
+                          packageName.contains("jago") ||
+                          packageName.contains("aladin") ||
+                          packageName.contains("cimb") ||
+                          packageName.contains("octo") ||
+                          packageName.contains("permata") ||
+                          packageName.contains("linkaja")
+
+        if (!isTargetApp) {
+            // Reject any unknown non-financial package
+            return false
+        }
 
         val hasMonetaryAmount = combinedSearch.contains("rp") ||
                                 combinedSearch.contains("idr") ||
@@ -186,17 +214,12 @@ class ReconXNotificationListener : NotificationListenerService() {
                                    combinedSearch.contains("debit") ||
                                    combinedSearch.contains("kredit") ||
                                    combinedSearch.contains("saldo") ||
-                                   combinedSearch.contains("uang") ||
                                    combinedSearch.contains("top up") ||
                                    combinedSearch.contains("diterima") ||
                                    combinedSearch.contains("dikirim") ||
-                                   combinedSearch.contains("keluar") ||
-                                   combinedSearch.contains("masuk") ||
                                    combinedSearch.contains("payment")
 
-        val isFinancial = (hasMonetaryAmount && hasTransactionAction) || 
-                          (isTargetApp && hasMonetaryAmount) ||
-                          (isTargetApp && (combinedSearch.contains("qris") || combinedSearch.contains("berhasil") || combinedSearch.contains("transfer")))
+        val isFinancial = hasMonetaryAmount && hasTransactionAction
 
         if (isFinancial) {
             Log.i(TAG, "Financial Notification Processed! pkg=$packageName key=$notifKey title=$effectiveTitle content=$effectiveContent")
